@@ -13,12 +13,31 @@ type FlynetLocation = {
   neighborhood?: { name?: string; region?: string };
 };
 
-let cache: { expiresAt: number; restaurants: unknown[] } | null = null;
+type Restaurant = {
+  id: string;
+  locationId: string;
+  name: string;
+  location: string;
+  neighborhood: string;
+  region: string;
+  cuisine: string[];
+  image: string;
+  price: number;
+};
 
-export async function GET() {
-  if (cache && cache.expiresAt > Date.now()) {
-    return NextResponse.json({ restaurants: cache.restaurants, cached: true });
-  }
+let cache: { expiresAt: number; restaurants: Restaurant[] } | null = null;
+
+export async function GET(request: Request) {
+  const city = new URL(request.url).searchParams.get("city") ?? "New York, NY";
+  const formatResponse = (restaurants: Restaurant[], cached = false) =>
+    NextResponse.json({
+      restaurants: restaurants.filter((restaurant) => restaurant.region === city).slice(0, 8),
+      city,
+      cached,
+      source: "flynet",
+    });
+
+  if (cache && cache.expiresAt > Date.now()) return formatResponse(cache.restaurants, true);
 
   const apiKey = process.env.FLYNET_API_KEY;
   const apiBase = process.env.FLYNET_API_BASE ?? "https://api.blackbird.xyz/flynet/v1";
@@ -28,7 +47,7 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(`${apiBase}/locations?page=0&page_size=12`, {
+    const response = await fetch(`${apiBase}/locations?page=0&page_size=100`, {
       headers: { "X-API-Key": apiKey },
       cache: "no-store",
     });
@@ -40,7 +59,7 @@ export async function GET() {
     const payload = await response.json();
     const locations: FlynetLocation[] = payload.locations ?? [];
     const seen = new Set<string>();
-    const restaurants = locations
+    const restaurants: Restaurant[] = locations
       .filter((location) => location.restaurant?.name && location.restaurant.asset?.web_2x)
       .filter((location) => {
         const key = `${location.restaurant?.id}:${location.neighborhood?.name}`;
@@ -59,10 +78,9 @@ export async function GET() {
         image: location.restaurant?.asset?.web_2x ?? location.restaurant?.asset?.preview_1x ?? "",
         price: location.restaurant?.price ?? 2,
       }))
-      .slice(0, 8);
 
     cache = { expiresAt: Date.now() + 30 * 60 * 1000, restaurants };
-    return NextResponse.json({ restaurants, source: "flynet" });
+    return formatResponse(restaurants);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to reach Flynet" },

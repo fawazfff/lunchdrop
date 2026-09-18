@@ -15,6 +15,7 @@ type Restaurant = {
 };
 
 const amounts = [10, 15, 25, 40];
+const cities = ["New York, NY", "San Francisco, CA", "Los Angeles, CA", "Hamptons, NY"];
 
 function money(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -28,6 +29,7 @@ export function LunchDropApp() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [city, setCity] = useState("New York, NY");
   const [selected, setSelected] = useState<Restaurant | null>(null);
   const [amount, setAmount] = useState(15);
   const [recipient, setRecipient] = useState("Maya");
@@ -38,7 +40,9 @@ export function LunchDropApp() {
   useEffect(() => {
     let active = true;
 
-    fetch("/api/restaurants")
+    setLoading(true);
+    setError("");
+    fetch(`/api/restaurants?city=${encodeURIComponent(city)}`)
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error ?? "Unable to load restaurants");
@@ -53,7 +57,7 @@ export function LunchDropApp() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [city]);
 
   const claimLink = useMemo(() => {
     if (!selected || typeof window === "undefined") return "";
@@ -93,7 +97,7 @@ export function LunchDropApp() {
         </a>
         <div className="nav-actions">
           <span className="live-pill"><i /> Live Flynet data</span>
-          <button className="ghost-button" type="button">Connect Blackbird</button>
+          <a className="ghost-button" href="#build-drop">Explore restaurants</a>
         </div>
       </nav>
 
@@ -101,7 +105,7 @@ export function LunchDropApp() {
         <div className="hero-copy">
           <span className="eyebrow">A LITTLE FOOD. A LOT OF LOVE.</span>
           <h1>Send lunch.<br /><em>Make their day.</em></h1>
-          <p>Pick a real Blackbird restaurant, add FLY, and send a lunch your friend can claim from one simple link.</p>
+          <p>Pick a real Blackbird restaurant, choose a city, and send a lunch note your friend can claim from one simple link.</p>
           <a className="primary-button" href="#build-drop">Send a LunchDrop <span>→</span></a>
           <div className="trust-row">
             <span>Powered by</span>
@@ -148,7 +152,11 @@ export function LunchDropApp() {
                 <div><span className="panel-number">01</span><h3>Where should they eat?</h3></div>
                 <span className="flynet-badge">↯ FLYNET</span>
               </div>
-              <p className="panel-subtitle">Choose from live Blackbird locations.</p>
+              <p className="panel-subtitle">Choose from live Blackbird locations. Restaurant and cuisine data come directly from Flynet.</p>
+              <label className="field-label" htmlFor="city">Choose a city</label>
+              <select id="city" className="text-input city-select" value={city} onChange={(event) => { setCity(event.target.value); setSent(false); }}>
+                {cities.map((option) => <option value={option} key={option}>{option}</option>)}
+              </select>
 
               {loading && <div className="restaurant-loading"><i /><i /><i /></div>}
               {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span></div>}
@@ -195,7 +203,7 @@ export function LunchDropApp() {
               <button className="send-button" type="button" disabled={!selected || !recipient.trim()} onClick={createDrop}>
                 Create {money(amount)} LunchDrop <span>→</span>
               </button>
-              <p className="fine-print">Restaurant discovery is live. FLY transfer activates after Blackbird connection.</p>
+              <p className="fine-print">Live Flynet restaurant discovery. This prototype creates a shareable lunch invitation; wallet transfer comes after Blackbird connection.</p>
             </section>
           </div>
 
