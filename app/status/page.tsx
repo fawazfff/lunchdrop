@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LunchBuddy } from "../components/LunchBuddy";
+import { SiteNav } from "../components/SiteNav";
 
 type Check = {
   id: string;
@@ -47,11 +48,7 @@ export default function StatusPage() {
 
   return (
     <main className="info-page status-page">
-      <nav className="nav shell">
-        <a className="brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
-        <div className="nav-links"><a href="/">Home</a><a href="/send">Send lunch</a><a href="/how-it-works">How it works</a></div>
-        <button className="ghost-button" type="button" onClick={() => void refresh()} disabled={refreshing}>{refreshing ? "Checking…" : "Refresh"}</button>
-      </nav>
+      <SiteNav current="status" />
 
       <section className="info-hero shell">
         <span className="eyebrow">INTEGRATION STATUS</span>
@@ -60,6 +57,7 @@ export default function StatusPage() {
       </section>
 
       <section className="info-content shell">
+        <div className="status-toolbar"><span>Live health checks from the deployed app</span><button className="ghost-button" type="button" onClick={() => void refresh()} disabled={refreshing}>{refreshing ? "Checking…" : "Refresh checks"}</button></div>
         {refreshing && !data ? <div className="status-loading"><LunchBuddy message="Checking Flynet and Blackbird…" /><div className="loading-progress"><span /></div></div> : null}
         {error ? <div className="error-card"><b>Status check failed.</b><span>{error}</span></div> : null}
         {data ? (
