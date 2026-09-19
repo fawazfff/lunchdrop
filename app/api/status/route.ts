@@ -58,6 +58,12 @@ export async function GET() {
         message: databaseMessage,
       },
       {
+        id: "abuse-protection",
+        label: "Distributed abuse protection",
+        state: databaseState === "connected" ? "connected" : "configured",
+        message: "Claim creation, opening, status checks, cancellation, restaurant changes, and Blackbird OAuth starts are protected by Supabase-backed rate limits.",
+      },
+      {
         id: "flynet-discovery",
         label: "Flynet discovery",
         state: flynetState,
