@@ -51,8 +51,8 @@ export function LunchDropApp() {
   const [amount, setAmount] = useState(15);
   const [specials, setSpecials] = useState<Special[]>([]);
   const [selectedSpecial, setSelectedSpecial] = useState<Special | null>(null);
-  const [sender, setSender] = useState("Fawaz");
-  const [recipient, setRecipient] = useState("Maya");
+  const [sender, setSender] = useState("");
+  const [recipient, setRecipient] = useState("");
   const [message, setMessage] = useState("Lunch is on me today 💛");
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -432,14 +432,14 @@ export function LunchDropApp() {
             </section>
 
             <section className="panel details-panel">
-              <div className="panel-heading"><div><span className="panel-number">02</span><h3>Make it personal.</h3></div></div>
-              <p className="panel-subtitle">A little context makes lunch taste better.</p>
+              <div className="panel-heading"><div><span className="panel-number">02</span><h3>Make it personal.</h3></div><button className="demo-fill-button" type="button" onClick={() => { setSender("Fawaz"); setRecipient("Maya"); setMessage("Lunch is on me today 💛"); setAmount(15); }}>Use demo details</button></div>
+              <p className="panel-subtitle">A little context makes lunch taste better. Nothing is hard-coded, and the demo helper is optional.</p>
 
               <label className="field-label" htmlFor="sender">Your name</label>
-              <input id="sender" className="text-input" value={sender} onChange={(event) => { setSender(event.target.value); setSent(false); }} placeholder="Who is sending this?" />
+              <input id="sender" className="text-input" value={sender} onChange={(event) => { setSender(event.target.value); setSent(false); }} placeholder="Your first name" />
 
               <label className="field-label" htmlFor="recipient">Who’s getting lunch?</label>
-              <input id="recipient" className="text-input" value={recipient} onChange={(event) => { setRecipient(event.target.value); setSent(false); }} placeholder="Their first name" />
+              <input id="recipient" className="text-input" value={recipient} onChange={(event) => { setRecipient(event.target.value); setSent(false); }} placeholder="Friend’s first name" />
 
               <span className="field-label">Flynet menu highlight</span>
               {specials.length > 0 ? <div className="special-list">
@@ -512,7 +512,7 @@ export function LunchDropApp() {
       </section>
 
       <footer className="footer shell">
-        <div className="brand"><span className="brand-mark">L</span><span>LunchDrop</span></div>
+        <a className="brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
         <div className="footer-links"><a href="/live">Live Flynet</a><a href="/blackbird">Blackbird</a><a href="/how-it-works">How it works</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
         <p>Built for Runtime NYC · Powered by Blackbird’s Flynet</p>
       </footer>
