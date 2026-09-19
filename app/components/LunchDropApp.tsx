@@ -26,7 +26,7 @@ type Special = {
   fly_reward?: { value: string; currency: "FLY" } | null;
 };
 
-type ClaimStatus = "created" | "shared" | "opened" | "demo_claimed" | "connected_claimed";
+type ClaimStatus = "created" | "shared" | "opened" | "demo_claimed" | "connected_claimed" | "cancelled" | "expired";
 
 function fly(value: number) { return `${value} FLY`; }
 
@@ -59,6 +59,9 @@ export function LunchDropApp() {
   const [claimLink, setClaimLink] = useState("");
   const [claimId, setClaimId] = useState("");
   const [claimStatus, setClaimStatus] = useState<ClaimStatus>("created");
+  const [senderKey, setSenderKey] = useState("");
+  const [claimCode, setClaimCode] = useState("");
+  const [dbBacked, setDbBacked] = useState(false);
   const [creating, setCreating] = useState(false);
   const [expiryDays, setExpiryDays] = useState(7);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -82,10 +85,20 @@ export function LunchDropApp() {
 
       const recent = window.localStorage.getItem("lunchdrop-last-created");
       if (recent) {
-        const last = JSON.parse(recent) as { claimLink?: string; claimId?: string; createdAt?: number };
+        const last = JSON.parse(recent) as {
+          claimLink?: string;
+          claimId?: string;
+          senderKey?: string;
+          claimCode?: string;
+          dbBacked?: boolean;
+          createdAt?: number;
+        };
         if (last.claimLink && last.claimId && last.createdAt && Date.now() - last.createdAt < 24 * 60 * 60 * 1000) {
           setClaimLink(last.claimLink);
           setClaimId(last.claimId);
+          setSenderKey(last.senderKey ?? "");
+          setClaimCode(last.claimCode ?? "");
+          setDbBacked(Boolean(last.dbBacked));
           setClaimStatus((window.localStorage.getItem(`lunchdrop-status-${last.claimId}`) as ClaimStatus | null) ?? "created");
           setSent(true);
         }
@@ -165,6 +178,33 @@ export function LunchDropApp() {
 
   useEffect(() => {
     if (!sent || !claimId) return;
+
+    if (dbBacked && claimCode && senderKey) {
+      let active = true;
+      const readRemoteStatus = async () => {
+        try {
+          const response = await fetch(
+            `/api/claims/code/${encodeURIComponent(claimCode)}/status?key=${encodeURIComponent(senderKey)}`,
+            { cache: "no-store" },
+          );
+          if (!active || !response.ok) return;
+          const payload = await response.json();
+          const next = payload.status as ClaimStatus;
+          setClaimStatus((current) => next === "created" && current === "shared" ? current : next);
+          window.localStorage.setItem(`lunchdrop-status-${claimId}`, next);
+        } catch {
+          // Keep the last known status during a temporary network failure.
+        }
+      };
+
+      void readRemoteStatus();
+      const timer = window.setInterval(() => void readRemoteStatus(), 1600);
+      return () => {
+        active = false;
+        window.clearInterval(timer);
+      };
+    }
+
     const readStatus = () => {
       const value = window.localStorage.getItem(`lunchdrop-status-${claimId}`) as ClaimStatus | null;
       if (value) setClaimStatus(value);
@@ -179,7 +219,7 @@ export function LunchDropApp() {
       window.clearInterval(timer);
       window.removeEventListener("storage", onStorage);
     };
-  }, [claimId, sent]);
+  }, [claimCode, claimId, dbBacked, senderKey, sent]);
 
   const filteredRestaurants = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -216,9 +256,19 @@ export function LunchDropApp() {
       const link = `${window.location.origin}${payload.url}`;
       setClaimLink(link);
       setClaimId(payload.claimId);
+      setSenderKey(String(payload.senderKey ?? ""));
+      setClaimCode(String(payload.code ?? ""));
+      setDbBacked(Boolean(payload.dbBacked));
       setClaimStatus("created");
       window.localStorage.setItem(`lunchdrop-status-${payload.claimId}`, "created");
-      window.localStorage.setItem("lunchdrop-last-created", JSON.stringify({ claimLink: link, claimId: payload.claimId, createdAt: Date.now() }));
+      window.localStorage.setItem("lunchdrop-last-created", JSON.stringify({
+        claimLink: link,
+        claimId: payload.claimId,
+        senderKey: String(payload.senderKey ?? ""),
+        claimCode: String(payload.code ?? ""),
+        dbBacked: Boolean(payload.dbBacked),
+        createdAt: Date.now(),
+      }));
       window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop created. Ready to share." }));
       setSent(true);
       setTimeout(() => document.querySelector("#drop-ready")?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -262,11 +312,31 @@ export function LunchDropApp() {
     await copyLink();
   }
 
+  async function cancelDrop() {
+    if (!dbBacked || !claimCode || !senderKey) return;
+    const response = await fetch(`/api/claims/code/${encodeURIComponent(claimCode)}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ senderKey }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: payload.error ?? "Could not cancel LunchDrop." }));
+      return;
+    }
+    setClaimStatus("cancelled");
+    window.localStorage.setItem(`lunchdrop-status-${claimId}`, "cancelled");
+    window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop cancelled." }));
+  }
+
   function sendAgain() {
     setSent(false);
     setCopied(false);
     setClaimLink("");
     setClaimId("");
+    setSenderKey("");
+    setClaimCode("");
+    setDbBacked(false);
     setClaimStatus("created");
     setRecipient("");
     setAmount(15);
@@ -280,6 +350,7 @@ export function LunchDropApp() {
 
   const opened = ["opened", "demo_claimed", "connected_claimed"].includes(claimStatus);
   const claimed = ["demo_claimed", "connected_claimed"].includes(claimStatus);
+  const terminal = ["connected_claimed", "cancelled", "expired"].includes(claimStatus);
 
   return (
     <main>
@@ -408,19 +479,19 @@ export function LunchDropApp() {
             <section className="drop-ready" id="drop-ready">
               <div className="ready-confetti">✦</div>
               <div className="ready-copy">
-                <span className="eyebrow">YOUR LUNCHDROP IS READY</span>
+                <span className="eyebrow">YOUR LUNCHDROP IS READY {dbBacked ? "· LIVE STATUS" : ""}</span>
                 <h2>{recipient}’s lunch is one link away.</h2>
                 <p>{fly(amount)} with <strong>{selectedSpecial?.label || selected.name}</strong> as your recommendation. Link expires in {expiryDays === 1 ? "24 hours" : `${expiryDays} days`}.</p>
               </div>
               <div className="link-box"><span>{claimLink}</span><button type="button" onClick={copyLink}>{copied ? "Copied!" : "Copy link"}</button></div>
 
               <div className="sender-status">
-                <div className="sender-status-heading"><div><span className="eyebrow">DEMO STATUS</span><h3>Follow the LunchDrop</h3></div><small>Live on this browser for the hackathon demo</small></div>
+                <div className="sender-status-heading"><div><span className="eyebrow">{dbBacked ? "LIVE STATUS" : "DEMO STATUS"}</span><h3>Follow the LunchDrop</h3></div><small>{dbBacked ? "Cross-device status from Supabase" : "Live on this browser for the hackathon demo"}</small></div>
                 <div className="status-timeline">
                   <div className="status-step done"><span>✓</span><div><b>Created</b><small>Secure gift link generated</small></div></div>
                   <div className={`status-step ${claimStatus !== "created" ? "done" : ""}`}><span>{claimStatus !== "created" ? "✓" : "2"}</span><div><b>Link shared</b><small>{claimStatus !== "created" ? "Link copied or opened" : "Copy the link to share it"}</small></div></div>
                   <div className={`status-step ${opened ? "done" : ""}`}><span>{opened ? "✓" : "3"}</span><div><b>Opened</b><small>{opened ? `${recipient}’s claim page was opened` : "Waiting for the recipient"}</small></div></div>
-                  <div className={`status-step ${claimed ? "done" : ""}`}><span>{claimed ? "✓" : "4"}</span><div><b>Claimed</b><small>{claimStatus === "connected_claimed" ? "Test FLY delivered through Blackbird" : claimStatus === "demo_claimed" ? "Demo claim completed without sign-in" : "Waiting for claim"}</small></div></div>
+                  <div className={`status-step ${claimed ? "done" : ""}`}><span>{claimed ? "✓" : "4"}</span><div><b>Claimed</b><small>{claimStatus === "connected_claimed" ? "Test FLY delivered through Blackbird" : claimStatus === "demo_claimed" ? "Demo claim completed without sign-in" : claimStatus === "cancelled" ? "Cancelled by sender" : claimStatus === "expired" ? "Link expired" : "Waiting for claim"}</small></div></div>
                 </div>
               </div>
 
@@ -431,9 +502,12 @@ export function LunchDropApp() {
                 <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://t.me/share/url?url=${encodeURIComponent(claimLink)}&text=${encodeURIComponent("A LunchDrop is waiting for you.")}`}>Telegram</a>
                 <a className="share-button" onClick={markShared} href={`sms:?&body=${encodeURIComponent(`Lunch is on me. Open your LunchDrop: ${claimLink}`)}`}>Messages</a>
               </div>
+              {claimStatus === "cancelled" ? <div className="claim-warning"><b>LunchDrop cancelled</b><span>The recipient can no longer open or claim this gift.</span></div> : null}
+              {claimStatus === "expired" ? <div className="claim-warning"><b>LunchDrop expired</b><span>Create a new one if you still want to send lunch.</span></div> : null}
               <div className="ready-actions">
-                <a className="preview-link" href={claimLink} target="_blank" rel="noreferrer">Preview what {recipient} sees →</a>
+                {!terminal ? <a className="preview-link" href={claimLink} target="_blank" rel="noreferrer">Preview what {recipient} sees →</a> : null}
                 <a className="preview-link" href="/status">Integration status →</a>
+                {dbBacked && !terminal ? <button className="danger-action" type="button" onClick={() => void cancelDrop()}>Cancel LunchDrop</button> : null}
                 <button className="secondary-action" type="button" onClick={sendAgain}>Send another lunch</button>
               </div>
             </section>
