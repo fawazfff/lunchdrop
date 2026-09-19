@@ -20,11 +20,12 @@ function secret() {
 }
 
 function signature(encoded: string) {
-  return createHmac("sha256", secret()).update(encoded).digest("base64url");
+  return createHmac("sha256", secret()).update(encoded).digest().subarray(0, 16).toString("base64url");
 }
 
 export function signClaim(payload: ClaimPayload) {
-  const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const compact = [payload.id, payload.locationId, payload.recipient, payload.sender, payload.amount, payload.message, payload.special ?? "", Math.floor(payload.expiresAt / 1000)];
+  const encoded = Buffer.from(JSON.stringify(compact)).toString("base64url");
   return `${encoded}.${signature(encoded)}`;
 }
 
@@ -35,7 +36,8 @@ export function verifyClaim(token: string): ClaimPayload {
   const left = Buffer.from(supplied);
   const right = Buffer.from(expected);
   if (left.length !== right.length || !timingSafeEqual(left, right)) throw new Error("Claim link was changed");
-  const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as ClaimPayload;
+  const decoded = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as [string, string, string, string, number, string, string, number];
+  const payload: ClaimPayload = { id: decoded[0], locationId: decoded[1], recipient: decoded[2], sender: decoded[3], amount: decoded[4], message: decoded[5], special: decoded[6] || undefined, createdAt: 0, expiresAt: decoded[7] * 1000 };
   if (payload.expiresAt < Date.now()) throw new Error("This claim link has expired");
   return payload;
 }
