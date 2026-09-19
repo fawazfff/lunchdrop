@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { signClaim } from "../../lib/claim-token";
+import { allowLunchDropRequest } from "../../lib/rate-limit";
 import {
   createLunchDrop,
   lunchdropDbEnabled,
@@ -10,6 +11,9 @@ import {
 
 export async function POST(request: Request) {
   try {
+    if (!(await allowLunchDropRequest(request, "claim-create", 12, 600))) {
+      return NextResponse.json({ error: "Too many LunchDrops created. Please wait a few minutes and try again." }, { status: 429, headers: { "Retry-After": "600" } });
+    }
     const body = await request.json();
     const amount = Math.min(100, Math.max(1, Math.round(Number(body.amount))));
     const locationId = String(body.locationId ?? "").trim();
