@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { signClaim } from "../../lib/claim-token";
 
@@ -15,9 +15,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please complete the gift details" }, { status: 400 });
     }
     const createdAt = Date.now();
-    const claimId = randomUUID();
+    const claimId = randomBytes(8).toString("hex");
     const token = signClaim({ id: claimId, locationId, recipient, sender, amount, message, special, createdAt, expiresAt: createdAt + 7 * 24 * 60 * 60 * 1000 });
-    return NextResponse.json({ url: `/claim?t=${encodeURIComponent(token)}`, claimId });
+    return NextResponse.json({ url: `/c/${token}`, claimId });
   } catch {
     return NextResponse.json({ error: "Unable to create a secure claim link" }, { status: 500 });
   }
