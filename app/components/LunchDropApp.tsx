@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { LunchBuddy } from "./LunchBuddy";
 
 type Restaurant = {
   id: string;
@@ -241,7 +242,7 @@ export function LunchDropApp() {
                 <select className="text-input" value={cuisine} onChange={(event) => { setCuisine(event.target.value); setVisibleCount(6); }} aria-label="Filter by cuisine">{cuisines.map((item) => <option key={item}>{item}</option>)}</select>
               </div>
 
-              {loading && <div className="restaurant-loading"><i /><i /><i /></div>}
+              {loading && <div className="restaurant-loading branded-loading"><LunchBuddy compact message="Checking Flynet for good lunch spots…" /><div className="loading-progress"><span /></div></div>}
               {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span></div>}
               <div className="restaurant-list">
                 {filteredRestaurants.slice(0, visibleCount).map((restaurant) => (
