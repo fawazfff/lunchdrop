@@ -60,6 +60,55 @@ export function LunchDropApp() {
   const [claimId, setClaimId] = useState("");
   const [claimStatus, setClaimStatus] = useState<ClaimStatus>("created");
   const [creating, setCreating] = useState(false);
+  const [expiryDays, setExpiryDays] = useState(7);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const [draftReady, setDraftReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("lunchdrop-draft-v1");
+      if (saved) {
+        const draft = JSON.parse(saved) as {
+          city?: string; sender?: string; recipient?: string; message?: string;
+          amount?: number; expiryDays?: number;
+        };
+        if (draft.city) setCity(draft.city);
+        if (typeof draft.sender === "string") setSender(draft.sender);
+        if (typeof draft.recipient === "string") setRecipient(draft.recipient);
+        if (typeof draft.message === "string") setMessage(draft.message);
+        if (typeof draft.amount === "number") setAmount(Math.min(100, Math.max(1, draft.amount)));
+        if ([1, 3, 7].includes(Number(draft.expiryDays))) setExpiryDays(Number(draft.expiryDays));
+      }
+
+      const recent = window.localStorage.getItem("lunchdrop-last-created");
+      if (recent) {
+        const last = JSON.parse(recent) as { claimLink?: string; claimId?: string; createdAt?: number };
+        if (last.claimLink && last.claimId && last.createdAt && Date.now() - last.createdAt < 24 * 60 * 60 * 1000) {
+          setClaimLink(last.claimLink);
+          setClaimId(last.claimId);
+          setClaimStatus((window.localStorage.getItem(`lunchdrop-status-${last.claimId}`) as ClaimStatus | null) ?? "created");
+          setSent(true);
+        }
+      }
+    } catch {
+      // Ignore malformed browser draft data.
+    } finally {
+      setDraftReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    window.localStorage.setItem("lunchdrop-draft-v1", JSON.stringify({
+      city,
+      selectedLocationId: selected?.locationId ?? "",
+      sender,
+      recipient,
+      message,
+      amount,
+      expiryDays,
+    }));
+  }, [amount, city, draftReady, expiryDays, message, recipient, selected?.locationId, sender]);
 
   useEffect(() => {
     let active = true;
@@ -72,7 +121,16 @@ export function LunchDropApp() {
         if (active) {
           setRestaurants(payload.restaurants);
           setCities(payload.cities ?? [city]);
-          setSelected(payload.restaurants.find((restaurant: Restaurant) => restaurant.paymentsEnabled) ?? null);
+          let preferredLocationId = "";
+          try {
+            const draft = JSON.parse(window.localStorage.getItem("lunchdrop-draft-v1") ?? "{}") as { selectedLocationId?: string };
+            preferredLocationId = draft.selectedLocationId ?? "";
+          } catch {}
+          setSelected(
+            payload.restaurants.find((restaurant: Restaurant) => restaurant.locationId === preferredLocationId && restaurant.paymentsEnabled)
+              ?? payload.restaurants.find((restaurant: Restaurant) => restaurant.paymentsEnabled)
+              ?? null,
+          );
           setVisibleCount(6);
         }
       })
@@ -80,7 +138,7 @@ export function LunchDropApp() {
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [city]);
+  }, [city, reloadNonce]);
 
   useEffect(() => {
     if (!selected) return;
@@ -140,14 +198,17 @@ export function LunchDropApp() {
       const response = await fetch("/api/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locationId: selected.locationId, recipient, sender, amount, message, special: selectedSpecial?.label }),
+        body: JSON.stringify({ locationId: selected.locationId, recipient, sender, amount, message, special: selectedSpecial?.label, expiryDays }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Unable to create LunchDrop");
-      setClaimLink(`${window.location.origin}${payload.url}`);
+      const link = `${window.location.origin}${payload.url}`;
+      setClaimLink(link);
       setClaimId(payload.claimId);
       setClaimStatus("created");
       window.localStorage.setItem(`lunchdrop-status-${payload.claimId}`, "created");
+      window.localStorage.setItem("lunchdrop-last-created", JSON.stringify({ claimLink: link, claimId: payload.claimId, createdAt: Date.now() }));
+      window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop created. Ready to share." }));
       setSent(true);
       setTimeout(() => document.querySelector("#drop-ready")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (reason) {
@@ -157,14 +218,37 @@ export function LunchDropApp() {
     }
   }
 
+  function markShared() {
+    if (!claimId) return;
+    window.localStorage.setItem(`lunchdrop-status-${claimId}`, "shared");
+    setClaimStatus("shared");
+  }
+
   async function copyLink() {
     await navigator.clipboard.writeText(claimLink);
     setCopied(true);
-    if (claimId) {
-      window.localStorage.setItem(`lunchdrop-status-${claimId}`, "shared");
-      setClaimStatus("shared");
-    }
+    markShared();
+    window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop link copied." }));
     window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function shareLink() {
+    if (!claimLink) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "LunchDrop",
+          text: `${sender} sent ${recipient || "you"} a LunchDrop.`,
+          url: claimLink,
+        });
+        markShared();
+        window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop shared." }));
+        return;
+      } catch (reason) {
+        if (reason instanceof Error && reason.name === "AbortError") return;
+      }
+    }
+    await copyLink();
   }
 
   function sendAgain() {
@@ -177,6 +261,9 @@ export function LunchDropApp() {
     setAmount(15);
     setMessage("Lunch is on me today 💛");
     setSelectedSpecial(null);
+    setExpiryDays(7);
+    window.localStorage.removeItem("lunchdrop-last-created");
+    window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "Fresh LunchDrop ready to make." }));
     window.setTimeout(() => document.querySelector("#build-drop")?.scrollIntoView({ behavior: "smooth" }), 50);
   }
 
@@ -247,7 +334,7 @@ export function LunchDropApp() {
               </div>
 
               {loading && <div className="restaurant-loading branded-loading"><LunchBuddy compact message="Checking Flynet for good lunch spots…" /><div className="loading-progress"><span /></div></div>}
-              {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span></div>}
+              {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span><button className="retry-button" type="button" onClick={() => setReloadNonce((value) => value + 1)}>Try again</button></div>}
               <div className="restaurant-list">
                 {filteredRestaurants.slice(0, visibleCount).map((restaurant) => (
                   <button type="button" className={`restaurant-card ${selected?.locationId === restaurant.locationId ? "selected" : ""}`} key={restaurant.locationId} onClick={() => { setSelected(restaurant); setSent(false); }}>
@@ -284,7 +371,16 @@ export function LunchDropApp() {
               </div> : <p className="no-special">Flynet has no current menu highlight for this restaurant. Regular menu prices are not included in the API.</p>}
 
               <label className="field-label" htmlFor="amount">Gift budget in FLY</label>
-              <input id="amount" className="text-input" type="number" min="1" max="100" step="1" value={amount} onChange={(event) => { setAmount(Math.min(100, Math.max(1, Number(event.target.value)))); setSent(false); }} />
+              <div className="amount-grid" aria-label="Quick FLY amounts">
+                {[5, 15, 30].map((value) => <button type="button" className={amount === value ? "active" : ""} key={value} onClick={() => { setAmount(value); setSent(false); }}>{value} FLY</button>)}
+                <button type="button" className={![5, 15, 30].includes(amount) ? "active" : ""} onClick={() => document.getElementById("amount")?.focus()}>Custom</button>
+              </div>
+              <input id="amount" className="text-input amount-custom-input" aria-label="Custom FLY amount" type="number" min="1" max="100" step="1" value={amount} onChange={(event) => { setAmount(Math.min(100, Math.max(1, Number(event.target.value)))); setSent(false); }} />
+
+              <span className="field-label">Gift link expiry</span>
+              <div className="expiry-grid" aria-label="Choose how long the LunchDrop link stays valid">
+                {[1, 3, 7].map((days) => <button type="button" className={expiryDays === days ? "active" : ""} key={days} onClick={() => { setExpiryDays(days); setSent(false); }}>{days === 1 ? "24 hours" : `${days} days`}</button>)}
+              </div>
 
               <label className="field-label" htmlFor="message">Add a note</label>
               <textarea id="message" className="text-input note-input" value={message} maxLength={100} onChange={(event) => { setMessage(event.target.value); setSent(false); }} />
@@ -303,7 +399,7 @@ export function LunchDropApp() {
               <div className="ready-copy">
                 <span className="eyebrow">YOUR LUNCHDROP IS READY</span>
                 <h2>{recipient}’s lunch is one link away.</h2>
-                <p>{fly(amount)} with <strong>{selectedSpecial?.label || selected.name}</strong> as your recommendation.</p>
+                <p>{fly(amount)} with <strong>{selectedSpecial?.label || selected.name}</strong> as your recommendation. Link expires in {expiryDays === 1 ? "24 hours" : `${expiryDays} days`}.</p>
               </div>
               <div className="link-box"><span>{claimLink}</span><button type="button" onClick={copyLink}>{copied ? "Copied!" : "Copy link"}</button></div>
 
@@ -317,8 +413,15 @@ export function LunchDropApp() {
                 </div>
               </div>
 
+              <div className="share-actions">
+                <button className="share-button primary-share" type="button" onClick={() => void shareLink()}>Share LunchDrop <span>↗</span></button>
+                <button className="share-button" type="button" onClick={() => void copyLink()}>{copied ? "Copied!" : "Copy link"}</button>
+                <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://wa.me/?text=${encodeURIComponent(`Lunch is on me. Open your LunchDrop: ${claimLink}`)}`}>WhatsApp</a>
+                <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://t.me/share/url?url=${encodeURIComponent(claimLink)}&text=${encodeURIComponent("A LunchDrop is waiting for you.")}`}>Telegram</a>
+              </div>
               <div className="ready-actions">
                 <a className="preview-link" href={claimLink} target="_blank" rel="noreferrer">Preview what {recipient} sees →</a>
+                <a className="preview-link" href="/status">Integration status →</a>
                 <button className="secondary-action" type="button" onClick={sendAgain}>Send another lunch</button>
               </div>
             </section>
@@ -328,7 +431,7 @@ export function LunchDropApp() {
 
       <footer className="footer shell">
         <div className="brand"><span className="brand-mark">L</span><span>LunchDrop</span></div>
-        <div className="footer-links"><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
+        <div className="footer-links"><a href="/how-it-works">How it works</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
         <p>Built for Runtime NYC · Powered by Blackbird’s Flynet</p>
       </footer>
     </main>
