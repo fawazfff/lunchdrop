@@ -6,9 +6,11 @@ export function BlackbirdConnect({ compact = false }: { compact?: boolean }) {
   const [connected, setConnected] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [returnPath, setReturnPath] = useState("/");
 
   useEffect(() => {
     let active = true;
+    setReturnPath(`${window.location.pathname}${window.location.search}`);
     fetch("/api/auth/blackbird/session", { cache: "no-store" })
       .then((response) => response.json())
       .then((payload) => {
@@ -42,7 +44,7 @@ export function BlackbirdConnect({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <a className={`blackbird-connect-control ${compact ? "compact" : ""}`} href="/api/auth/blackbird/start?return=%2F">
+    <a className={`blackbird-connect-control ${compact ? "compact" : ""}`} href={`/api/auth/blackbird/start?return=${encodeURIComponent(returnPath)}`}>
       <span className="blackbird-mini-mark">B</span>
       <span><b>Connect Blackbird</b><small>Member wallet</small></span>
       <strong>→</strong>
