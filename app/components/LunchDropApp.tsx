@@ -184,8 +184,13 @@ export function LunchDropApp() {
       const readRemoteStatus = async () => {
         try {
           const response = await fetch(
-            `/api/claims/code/${encodeURIComponent(claimCode)}/status?key=${encodeURIComponent(senderKey)}`,
-            { cache: "no-store" },
+            `/api/claims/code/${encodeURIComponent(claimCode)}/status`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ senderKey }),
+              cache: "no-store",
+            },
           );
           if (!active || !response.ok) return;
           const payload = await response.json();
