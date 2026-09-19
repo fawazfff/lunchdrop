@@ -67,6 +67,7 @@ export function LunchDropApp() {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [draftReady, setDraftReady] = useState(false);
   const [requestedLocationId, setRequestedLocationId] = useState("");
+  const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
     try {
@@ -275,14 +276,27 @@ export function LunchDropApp() {
       setDbBacked(Boolean(payload.dbBacked));
       setClaimStatus("created");
       window.localStorage.setItem(`lunchdrop-status-${payload.claimId}`, "created");
-      window.localStorage.setItem("lunchdrop-last-created", JSON.stringify({
+      const createdAt = Date.now();
+      const historyItem = {
         claimLink: link,
         claimId: payload.claimId,
         senderKey: String(payload.senderKey ?? ""),
         claimCode: String(payload.code ?? ""),
         dbBacked: Boolean(payload.dbBacked),
-        createdAt: Date.now(),
-      }));
+        recipient,
+        sender,
+        amount,
+        restaurant: selected.name,
+        createdAt,
+      };
+      window.localStorage.setItem("lunchdrop-last-created", JSON.stringify(historyItem));
+      try {
+        const existing = JSON.parse(window.localStorage.getItem("lunchdrop-history-v1") ?? "[]") as Array<Record<string, unknown>>;
+        const next = [historyItem, ...existing.filter((item) => item.claimId !== payload.claimId)].slice(0, 30);
+        window.localStorage.setItem("lunchdrop-history-v1", JSON.stringify(next));
+      } catch {
+        window.localStorage.setItem("lunchdrop-history-v1", JSON.stringify([historyItem]));
+      }
       window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop created. Ready to share." }));
       setSent(true);
       setTimeout(() => document.querySelector("#drop-ready")?.scrollIntoView({ behavior: "smooth" }), 50);
@@ -352,6 +366,7 @@ export function LunchDropApp() {
     setClaimCode("");
     setDbBacked(false);
     setClaimStatus("created");
+    setShowQr(false);
     setRecipient("");
     setAmount(15);
     setMessage("Lunch is on me today 💛");
@@ -493,15 +508,24 @@ export function LunchDropApp() {
 
               <div className="share-actions">
                 <button className="share-button primary-share" type="button" onClick={() => void shareLink()}>Share LunchDrop <span>↗</span></button>
+                {dbBacked ? <button className="share-button" type="button" onClick={() => setShowQr((value) => !value)}>{showQr ? "Hide QR" : "Show QR"}</button> : null}
                 <button className="share-button" type="button" onClick={() => void copyLink()}>{copied ? "Copied!" : "Copy link"}</button>
                 <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://wa.me/?text=${encodeURIComponent(`Lunch is on me. Open your LunchDrop: ${claimLink}`)}`}>WhatsApp</a>
                 <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://t.me/share/url?url=${encodeURIComponent(claimLink)}&text=${encodeURIComponent("A LunchDrop is waiting for you.")}`}>Telegram</a>
                 <a className="share-button" onClick={markShared} href={`sms:?&body=${encodeURIComponent(`Lunch is on me. Open your LunchDrop: ${claimLink}`)}`}>Messages</a>
               </div>
+              {showQr && dbBacked ? (
+                <div className="qr-share-card">
+                  <div><span className="eyebrow">SCAN TO OPEN</span><h3>{recipient}’s LunchDrop</h3><p>Scan this with another phone to test the cross-device claim flow instantly.</p></div>
+                  <img src={`/api/qr?url=${encodeURIComponent(claimLink)}`} alt={`QR code for ${recipient}’s LunchDrop`} />
+                  <div className="qr-actions"><a className="secondary-action" href={`/api/qr?url=${encodeURIComponent(claimLink)}`} download={`lunchdrop-${claimCode || "gift"}.svg`}>Save QR</a><button className="secondary-action" type="button" onClick={() => void copyLink()}>Copy link</button></div>
+                </div>
+              ) : null}
               {claimStatus === "cancelled" ? <div className="claim-warning"><b>LunchDrop cancelled</b><span>The recipient can no longer open or claim this gift.</span></div> : null}
               {claimStatus === "expired" ? <div className="claim-warning"><b>LunchDrop expired</b><span>Create a new one if you still want to send lunch.</span></div> : null}
               <div className="ready-actions">
                 {!terminal ? <a className="preview-link" href={claimLink} target="_blank" rel="noreferrer">Preview what {recipient} sees →</a> : null}
+                <a className="preview-link" href="/history">My LunchDrops →</a>
                 <a className="preview-link" href="/status">Integration status →</a>
                 {dbBacked && !terminal ? <button className="danger-action" type="button" onClick={() => void cancelDrop()}>Cancel LunchDrop</button> : null}
                 <button className="secondary-action" type="button" onClick={sendAgain}>Send another lunch</button>
