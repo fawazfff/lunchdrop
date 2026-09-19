@@ -1,15 +1,29 @@
 import type { ReactNode } from "react";
+import { SiteNav } from "./SiteNav";
 
-export function InfoPage({ eyebrow, title, intro, children }: { eyebrow: string; title: string; intro: string; children: ReactNode }) {
+type CurrentPage = "home" | "send" | "how" | "blackbird" | "live" | "status" | "faq" | "about";
+
+export function InfoPage({
+  eyebrow,
+  title,
+  intro,
+  children,
+  current,
+}: {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  children: ReactNode;
+  current: CurrentPage;
+}) {
   return <main className="info-page">
-    <nav className="nav shell">
-      <a className="brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
-      <div className="nav-links"><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
-      <a className="ghost-button" href="/send">Send lunch</a>
-    </nav>
+    <SiteNav current={current} />
     <header className="info-hero shell"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{intro}</p></header>
     <section className="info-content shell">{children}</section>
-    <footer className="footer shell"><a className="brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a><p>Live restaurant discovery via Flynet</p></footer>
+    <footer className="footer shell">
+      <a className="brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
+      <div className="footer-links"><a href="/live">Live Flynet</a><a href="/blackbird">Blackbird</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
+      <p>Live restaurant discovery via Flynet</p>
+    </footer>
   </main>;
 }
-
