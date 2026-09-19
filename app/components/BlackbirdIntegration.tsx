@@ -27,6 +27,7 @@ export function BlackbirdIntegration({ compact = false }: BlackbirdIntegrationPr
       <div className="blackbird-note">
         <i />
         <span>The sign-in button appears after a recipient opens a real LunchDrop, because that recipient is the person authorizing their Blackbird account.</span>
+        <a href="/status">View live integration status →</a>
       </div>
     </section>
   );
