@@ -85,9 +85,11 @@ export async function GET() {
       },
       {
         id: "signed-claims",
-        label: "Signed claim links",
+        label: "Legacy signed-link fallback",
         state: signingConfigured ? "connected" : "unavailable",
-        message: signingConfigured ? "Compact tamper-resistant claim signing is active." : "Claim signing secret is missing.",
+        message: signingConfigured
+          ? "Legacy tamper-resistant claim links remain available as a fallback; new LunchDrops use Supabase short codes."
+          : "Legacy claim signing secret is missing.",
       },
     ],
   }, {
