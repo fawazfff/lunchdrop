@@ -9,9 +9,9 @@ export function HomePage() {
 
       <section className="hero shell" id="top">
         <div className="hero-copy">
-          <span className="eyebrow">A SMALL GIFT. A REALLY GOOD LUNCH.</span>
-          <h1>Buy lunch.<br /><em>Send a link.</em></h1>
-          <p>Choose a real Blackbird restaurant, add a personal note, and send your friend a secure LunchDrop link.</p>
+          <span className="eyebrow">A SMALL GIFT. A REAL MOMENT.</span>
+          <h1>Send someone lunch.<br /><em>Make their day.</em></h1>
+          <p>Choose a real Blackbird spot, add a note, and send a LunchDrop they can open in seconds.</p>
           <a className="primary-button" href="/send">Send a LunchDrop <span>→</span></a>
           <div className="trust-row"><span>Powered by</span><strong>BLACKBIRD</strong><b>×</b><strong>FLYNET</strong></div>
         </div>
@@ -33,15 +33,15 @@ export function HomePage() {
           <div className="simple-steps">
             <article><span>1</span><h3>Pick a restaurant</h3><p>Browse real, FLY-enabled Blackbird locations from Flynet.</p></article>
             <article><span>2</span><h3>Make it personal</h3><p>Choose a FLY amount, a live special when available, and add your note.</p></article>
-            <article><span>3</span><h3>Share the link</h3><p>Your friend opens a secure claim page. Wallet delivery activates after Flynet approval.</p></article>
+            <article><span>3</span><h3>Share the link</h3><p>Your friend opens the gift, can keep your recommendation or browse other FLY-ready spots, and can test the claim without signing in.</p></article>
           </div>
 
           <section className="flynet-proof">
-            <div><span className="eyebrow">REAL FLYNET INTEGRATION</span><h2>Not sample restaurant data.</h2><p>LunchDrop calls Flynet for live locations, cities, neighborhoods, cuisine, images, payment availability, and restaurant specials.</p></div>
-            <div className="proof-list"><span>✓ Live Locations API</span><span>✓ FLY-payment availability</span><span>✓ Live restaurant specials</span><span>✓ Cached to protect API usage</span></div>
+            <div><span className="eyebrow">BUILT WITH BLACKBIRD + FLYNET</span><h2>Real data. Real member flow.</h2><p>LunchDrop uses Flynet for live restaurant discovery and Blackbird for optional member sign-in and test FLY reward delivery.</p></div>
+            <div className="proof-list"><span>✓ Live Flynet locations</span><span>✓ Blackbird member OAuth</span><span>✓ Test FLY reward delivery</span><span>✓ Signed one-time claim links</span></div>
           </section>
 
-          <div className="truth-strip"><strong>Test-mode truth:</strong><span>The app wallet has 100 test FLY. Automatic Blackbird wallet delivery is waiting only on OAuth and reward-scope approval.</span></div>
+          <div className="truth-strip"><strong>No account required:</strong><span>Anyone can test the recipient claim flow. Blackbird sign-in is optional and only needed if they want to try connected test FLY delivery.</span></div>
           <div className="home-cta"><div><span className="eyebrow">READY?</span><h2>Make someone’s day.</h2></div><a className="primary-button" href="/send">Send lunch <span>→</span></a></div>
         </div>
       </section>
