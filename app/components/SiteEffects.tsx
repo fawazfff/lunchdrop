@@ -114,9 +114,9 @@ export function SiteEffects() {
       stage.style.setProperty("--my", y.toFixed(3));
     };
 
-    let successWasVisible = Boolean(document.querySelector(".claim-success"));
+    let successWasVisible = Boolean(document.querySelector(".claim-success, .drop-ready"));
     const mutationObserver = new MutationObserver(() => {
-      const successIsVisible = Boolean(document.querySelector(".claim-success"));
+      const successIsVisible = Boolean(document.querySelector(".claim-success, .drop-ready"));
       if (successIsVisible && !successWasVisible) play("success");
       successWasVisible = successIsVisible;
     });
