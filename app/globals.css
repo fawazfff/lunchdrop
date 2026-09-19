@@ -140,3 +140,82 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 760px) { .flynet-proof { grid-template-columns: 1fr; padding: 26px 20px; }.truth-strip { flex-direction: column; }.filter-grid { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 
+
+
+/* LunchDrop demo completion upgrade */
+.sender-status { margin-top: 28px; padding: 22px; border: 1px solid rgba(23,22,18,.28); border-radius: 12px; background: rgba(255,255,255,.78); }
+.sender-status-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+.sender-status-heading h3 { margin: 5px 0 0; font-size: 24px; letter-spacing: -.04em; }
+.sender-status-heading > small { max-width: 230px; text-align: right; color: rgba(23,22,18,.55); }
+.status-timeline { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.status-step { min-width: 0; display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid rgba(23,22,18,.18); border-radius: 9px; background: rgba(255,255,255,.6); opacity: .58; }
+.status-step > span { flex: 0 0 28px; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--ink); border-radius: 50%; font-size: 11px; font-weight: 900; }
+.status-step div { min-width: 0; display: grid; gap: 3px; }
+.status-step b { font-size: 12px; }
+.status-step small { color: rgba(23,22,18,.58); line-height: 1.35; }
+.status-step.done { opacity: 1; background: #edf8ee; border-color: #9abd9f; }
+.status-step.done > span { background: #397643; color: white; border-color: #397643; }
+.ready-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; }
+.secondary-action { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 10px 14px; border: 1px solid var(--ink); border-radius: 7px; background: transparent; color: var(--ink); font-weight: 800; cursor: pointer; }
+.secondary-action:hover { background: rgba(23,22,18,.06); }
+
+.claim-page { overflow-x: hidden; overflow-y: auto; }
+.claim-page-open { align-items: start; }
+.claim-page-open .claim-card { margin: 24px 0 48px; }
+.claim-reveal-card { position: relative; width: min(760px,100%); overflow: hidden; display: grid; grid-template-columns: .9fr 1.1fr; border: 1px solid var(--ink); border-radius: 18px; background: var(--paper); box-shadow: 16px 16px 0 var(--ink); animation: reveal-pop .55s ease both; }
+.claim-reveal-card > img { width: 100%; height: 100%; min-height: 430px; object-fit: cover; }
+.claim-reveal-copy { align-self: center; padding: 48px; }
+.claim-reveal-copy h1 { margin: 12px 0 18px; font-size: clamp(46px,6vw,72px); line-height: .92; letter-spacing: -.065em; }
+.claim-reveal-copy p { margin: 0 0 24px; color: rgba(23,22,18,.66); line-height: 1.55; }
+
+.recipient-choice { margin-top: 22px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf4; }
+.recipient-choice h3 { margin: 6px 0 6px; font-size: 20px; letter-spacing: -.035em; }
+.recipient-choice p { margin: 0 0 14px; font-size: 12px; line-height: 1.5; color: rgba(23,22,18,.62); }
+.alternative-grid { display: grid; gap: 8px; margin-top: 12px; }
+.alternative-card { width: 100%; display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: white; text-align: left; cursor: pointer; }
+.alternative-card:hover { border-color: rgba(23,22,18,.55); }
+.alternative-card.selected { border: 2px solid var(--ink); background: #fff8d6; padding: 7px; }
+.alternative-card img { width: 64px; height: 58px; object-fit: cover; border-radius: 7px; background: #eee; }
+.alternative-card > span { min-width: 0; display: grid; gap: 2px; }
+.alternative-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alternative-card small { color: rgba(23,22,18,.58); }
+.alternative-card em { width: fit-content; margin-top: 2px; font-style: normal; font-size: 9px; font-weight: 850; color: var(--orange); text-transform: uppercase; letter-spacing: .05em; }
+
+.optional-blackbird { display: grid; place-items: center; gap: 8px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); text-align: center; }
+.optional-blackbird > span { color: rgba(23,22,18,.42); font: 800 9px/1 var(--font-geist-mono),monospace; letter-spacing: .12em; }
+.optional-blackbird a { font-weight: 850; text-decoration: underline; text-underline-offset: 3px; }
+.optional-blackbird small { max-width: 430px; color: rgba(23,22,18,.5); line-height: 1.45; }
+
+.claim-receipt { margin-top: 18px; border: 1px solid var(--ink); border-radius: 10px; overflow: hidden; background: white; }
+.receipt-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; background: var(--ink); color: white; }
+.receipt-heading .eyebrow { color: rgba(255,255,255,.68); }
+.receipt-grid { display: grid; grid-template-columns: repeat(2,1fr); }
+.receipt-grid > div { display: grid; gap: 5px; min-width: 0; padding: 14px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.receipt-grid > div:nth-child(2n) { border-right: 0; }
+.receipt-grid > div:nth-last-child(-n+2) { border-bottom: 0; }
+.receipt-grid small { font: 800 8px/1 var(--font-geist-mono),monospace; letter-spacing: .09em; color: rgba(23,22,18,.45); }
+.receipt-grid strong { overflow-wrap: anywhere; font-size: 12px; line-height: 1.35; }
+
+@keyframes reveal-pop {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 850px) {
+  .status-timeline { grid-template-columns: repeat(2,1fr); }
+  .claim-reveal-card { grid-template-columns: 1fr; }
+  .claim-reveal-card > img { min-height: 230px; max-height: 280px; }
+}
+@media (max-width: 620px) {
+  .sender-status-heading { align-items: flex-start; flex-direction: column; }
+  .sender-status-heading > small { text-align: left; }
+  .status-timeline { grid-template-columns: 1fr; }
+  .ready-actions { align-items: stretch; flex-direction: column; }
+  .ready-actions .preview-link { width: fit-content; }
+  .claim-reveal-copy { padding: 32px 24px; }
+  .claim-reveal-copy h1 { font-size: 46px; }
+  .receipt-grid { grid-template-columns: 1fr; }
+  .receipt-grid > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .receipt-grid > div:nth-last-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .receipt-grid > div:last-child { border-bottom: 0; }
+}
