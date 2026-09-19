@@ -73,7 +73,7 @@ export async function GET(request: Request) {
   const oauthCode = params.get("code") ?? "";
   const state = params.get("state") ?? "";
 
-  const errorValues = (value: string) => token || code
+  const errorValues = (value: string): Record<string, string> => token || code
     ? { oauth_error: value }
     : { blackbird_error: value };
 
