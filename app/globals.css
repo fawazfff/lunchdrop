@@ -1022,3 +1022,115 @@ body.lunchie-party::after {
   .blackbird-note { grid-column: 1; }
   .blackbird-mark { width: 46px; height: 46px; }
 }
+
+
+/* Real Blackbird member-wallet connection controls */
+.hero-action-row {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.hero-action-row .primary-button { margin: 0; }
+
+.blackbird-connect-control {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  box-shadow: 4px 4px 0 rgba(23,22,18,.14);
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+.blackbird-connect-control:hover {
+  transform: translate(-1px,-2px);
+  box-shadow: 6px 7px 0 rgba(23,22,18,.14);
+  background: #fffdf2;
+}
+.blackbird-connect-control > span:not(.blackbird-mini-mark) {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+.blackbird-connect-control b {
+  font-size: 12px;
+  line-height: 1.1;
+}
+.blackbird-connect-control small {
+  color: rgba(23,22,18,.52);
+  font-size: 9px;
+}
+.blackbird-connect-control > strong {
+  margin-left: 2px;
+  color: var(--orange);
+}
+.blackbird-connect-control.compact {
+  min-height: 40px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  box-shadow: none;
+  background: var(--ink);
+  color: white;
+}
+.blackbird-connect-control.compact:hover {
+  background: #292821;
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+.blackbird-connect-control.compact small {
+  color: rgba(255,255,255,.58);
+}
+.blackbird-connect-control.compact .blackbird-mini-mark {
+  background: white;
+  color: var(--ink);
+}
+.blackbird-connect-control.connected {
+  border-color: #79a87e;
+  background: #edf8ee;
+}
+.blackbird-connect-control.connected .blackbird-mini-mark {
+  background: #397643;
+  color: white;
+}
+.blackbird-connect-control.connected button {
+  border: 0;
+  margin-left: 6px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(23,22,18,.08);
+  color: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.blackbird-connect-control.loading { opacity: .68; cursor: wait; }
+
+@media (max-width: 850px) {
+  .nav .blackbird-connect-control.compact small { display: none; }
+}
+@media (max-width: 620px) {
+  .hero-action-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .hero-action-row .primary-button,
+  .hero-action-row .blackbird-connect-control {
+    width: 100%;
+  }
+  .nav .blackbird-connect-control.compact {
+    max-width: 44px;
+    width: 44px;
+    overflow: hidden;
+    padding: 7px 9px;
+  }
+  .nav .blackbird-connect-control.compact > span:not(.blackbird-mini-mark),
+  .nav .blackbird-connect-control.compact > strong,
+  .nav .blackbird-connect-control.compact button {
+    display: none;
+  }
+}
