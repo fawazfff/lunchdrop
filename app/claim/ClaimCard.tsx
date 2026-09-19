@@ -56,7 +56,8 @@ function friendlyOAuthError(value: string) {
 export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
   const params = useSearchParams();
   const token = tokenOverride ?? params.get("t") ?? "";
-  const claimed = params.get("claimed") === "1";
+  const isDbClaim = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6,12}$/.test(token.toUpperCase());
+  const claimedParam = params.get("claimed") === "1";
   const rewardId = params.get("reward") ?? "";
   const oauthError = params.get("oauth_error") ?? "";
 
@@ -67,8 +68,9 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [revealed, setRevealed] = useState(claimed || Boolean(oauthError));
+  const [revealed, setRevealed] = useState(claimedParam || Boolean(oauthError));
   const [demoComplete, setDemoComplete] = useState(false);
+  const [connectedComplete, setConnectedComplete] = useState(claimedParam);
   const [receiptTime, setReceiptTime] = useState("");
 
   useEffect(() => {
@@ -82,14 +84,42 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
 
     async function loadClaim() {
       try {
-        const verified = await fetch(`/api/claims/verify?token=${encodeURIComponent(token)}`);
+        const verified = await fetch(
+          isDbClaim
+            ? `/api/claims/code/${encodeURIComponent(token.toUpperCase())}`
+            : `/api/claims/verify?token=${encodeURIComponent(token)}`,
+          { cache: "no-store" },
+        );
         const result = await verified.json();
         if (!verified.ok) throw new Error(result.error ?? "This claim link is invalid");
         if (!active) return;
 
-        const loadedClaim = result.claim as Claim;
+        const loadedClaim = result.claim as Claim & {
+          chosenLocationId?: string;
+          status?: string;
+          demoClaimedAt?: string;
+          connectedClaimedAt?: string;
+          rewardId?: string;
+        };
         setClaim(loadedClaim);
-        window.localStorage.setItem(`lunchdrop-status-${loadedClaim.id}`, claimed ? "connected_claimed" : "opened");
+        if (loadedClaim.status === "demo_claimed") {
+          setDemoComplete(true);
+          setReceiptTime(loadedClaim.demoClaimedAt ? new Date(loadedClaim.demoClaimedAt).toLocaleString() : new Date().toLocaleString());
+          setRevealed(true);
+        }
+        if (loadedClaim.status === "connected_claimed") {
+          setConnectedComplete(true);
+          setReceiptTime(loadedClaim.connectedClaimedAt ? new Date(loadedClaim.connectedClaimedAt).toLocaleString() : new Date().toLocaleString());
+          setRevealed(true);
+        }
+        window.localStorage.setItem(
+          `lunchdrop-status-${loadedClaim.id}`,
+          loadedClaim.status === "connected_claimed"
+            ? "connected_claimed"
+            : loadedClaim.status === "demo_claimed"
+              ? "demo_claimed"
+              : "opened",
+        );
 
         const location = await fetch(`/api/locations/${encodeURIComponent(loadedClaim.locationId)}`);
         const locationResult = await location.json();
@@ -99,15 +129,26 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
         const recommended = locationResult.location as Venue;
         setVenue(recommended);
 
-        const stored = window.localStorage.getItem(`lunchdrop-venue-${loadedClaim.id}`);
-        if (stored) {
+        if (isDbClaim && loadedClaim.chosenLocationId && loadedClaim.chosenLocationId !== loadedClaim.locationId) {
           try {
-            setChosenVenue(JSON.parse(stored) as Venue);
+            const chosenResponse = await fetch(`/api/locations/${encodeURIComponent(loadedClaim.chosenLocationId)}`);
+            const chosenPayload = await chosenResponse.json();
+            if (active && chosenResponse.ok) setChosenVenue(chosenPayload.location as Venue);
+            else if (active) setChosenVenue(recommended);
           } catch {
-            setChosenVenue(recommended);
+            if (active) setChosenVenue(recommended);
           }
         } else {
-          setChosenVenue(recommended);
+          const stored = window.localStorage.getItem(`lunchdrop-venue-${loadedClaim.id}`);
+          if (stored) {
+            try {
+              setChosenVenue(JSON.parse(stored) as Venue);
+            } catch {
+              setChosenVenue(recommended);
+            }
+          } else {
+            setChosenVenue(recommended);
+          }
         }
 
         if (recommended.region) {
@@ -130,14 +171,20 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
 
     loadClaim();
     return () => { active = false; };
-  }, [token, claimed]);
+  }, [token, claimedParam, isDbClaim]);
 
   useEffect(() => {
-    if (claimed) {
+    if (claimedParam) {
+      setConnectedComplete(true);
       setReceiptTime(new Date().toLocaleString());
       window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "Blackbird reward confirmed." }));
     }
-  }, [claimed]);
+  }, [claimedParam]);
+
+  const claimed = claimedParam || connectedComplete;
+  const blackbirdHref = isDbClaim
+    ? `/api/auth/blackbird/start?c=${encodeURIComponent(token.toUpperCase())}`
+    : `/api/auth/blackbird/start?t=${encodeURIComponent(token)}`;
 
   const receiptStatus = claimed
     ? "Test FLY delivered through Blackbird"
@@ -165,15 +212,40 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
     [alternatives],
   );
 
-  function chooseVenue(nextVenue: Venue) {
+  async function chooseVenue(nextVenue: Venue, locationId?: string) {
     setChosenVenue(nextVenue);
     setShowAlternatives(false);
     if (claim) window.localStorage.setItem(`lunchdrop-venue-${claim.id}`, JSON.stringify(nextVenue));
+
+    if (isDbClaim && locationId) {
+      try {
+        await fetch(`/api/claims/code/${encodeURIComponent(token.toUpperCase())}/choice`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locationId }),
+        });
+      } catch {
+        // Local selection still works if persistence is temporarily unavailable.
+      }
+    }
+
     window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: `${nextVenue.name} selected.` }));
   }
 
-  function finishDemo() {
+  async function finishDemo() {
     if (!claim) return;
+
+    if (isDbClaim) {
+      const response = await fetch(`/api/claims/code/${encodeURIComponent(token.toUpperCase())}/demo`, {
+        method: "POST",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: payload.error ?? "Could not complete demo claim." }));
+        return;
+      }
+    }
+
     setDemoComplete(true);
     setReceiptTime(new Date().toLocaleString());
     window.localStorage.setItem(`lunchdrop-status-${claim.id}`, "demo_claimed");
@@ -242,12 +314,12 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
                   </button>
                   {showAlternatives ? (
                     <div className="alternative-grid">
-                      <button className={`alternative-card ${selectedPlace.name === venue.name ? "selected" : ""}`} type="button" onClick={() => chooseVenue(venue)}>
+                      <button className={`alternative-card ${selectedPlace.name === venue.name ? "selected" : ""}`} type="button" onClick={() => void chooseVenue(venue, claim.locationId)}>
                         {venue.image ? <img src={venue.image} alt="" /> : null}
                         <span><b>{venue.name}</b><small>{venue.neighborhood}</small><em>Sender’s pick</em></span>
                       </button>
                       {alternativeVenues.map((restaurant) => (
-                        <button className={`alternative-card ${selectedPlace.name === restaurant.name && selectedPlace.location === restaurant.location ? "selected" : ""}`} type="button" key={`${restaurant.name}-${restaurant.location}`} onClick={() => chooseVenue(restaurant)}>
+                        <button className={`alternative-card ${selectedPlace.name === restaurant.name && selectedPlace.location === restaurant.location ? "selected" : ""}`} type="button" key={`${restaurant.name}-${restaurant.location}`} onClick={() => void chooseVenue(restaurant, alternatives.find((item) => item.name === restaurant.name && item.location === restaurant.location)?.locationId)}>
                           {restaurant.image ? <img src={restaurant.image} alt="" /> : null}
                           <span><b>{restaurant.name}</b><small>{restaurant.neighborhood}</small><em>FLY-ready</em></span>
                         </button>
@@ -282,16 +354,16 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
                     <h3>Want the {claim.amount} test FLY too?</h3>
                     <p>Your demo is already complete. Connect Blackbird only if you want to try receiving the test FLY reward in the connected member flow.</p>
                   </div>
-                  <a className="blackbird-reward-button" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}><span className="blackbird-mini-mark">B</span> Connect Blackbird to receive test FLY <span>→</span></a>
+                  <a className="blackbird-reward-button" href={blackbirdHref}><span className="blackbird-mini-mark">B</span> Connect Blackbird to receive test FLY <span>→</span></a>
                 </div>
               ) : null}
             </>
           ) : (
             <>
-              <button className="claim-button" type="button" onClick={finishDemo}>Test claim without sign-in <span>→</span></button>
+              <button className="claim-button" type="button" onClick={() => void finishDemo()}>Test claim without sign-in <span>→</span></button>
               <div className="optional-blackbird">
                 <span>OPTIONAL</span>
-                <a className="blackbird-connect-link" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}><span className="blackbird-mini-mark">B</span> Connect Blackbird to receive {claim.amount} test FLY →</a>
+                <a className="blackbird-connect-link" href={blackbirdHref}><span className="blackbird-mini-mark">B</span> Connect Blackbird to receive {claim.amount} test FLY →</a>
                 <small>You do not need Blackbird to test LunchDrop. Connect only if you want to try the reward delivery flow.</small>
               </div>
             </>
