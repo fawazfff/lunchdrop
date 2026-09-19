@@ -63,16 +63,11 @@ export function LunchDropApp() {
   const claimLink = useMemo(() => {
     if (!selected || typeof window === "undefined") return "";
     const params = new URLSearchParams({
-      to: recipient.trim() || "A friend",
-      from: sender.trim() || "A friend",
-      amount: String(amount),
-      message,
-      restaurant: selected.name,
-      location: selected.location,
-      neighborhood: selected.neighborhood,
-      image: selected.image,
-      restaurantId: selected.id,
-      locationId: selected.locationId,
+      l: selected.locationId,
+      t: recipient.trim() || "A friend",
+      f: sender.trim() || "A friend",
+      a: String(amount),
+      m: message,
     });
     return `${window.location.origin}/claim?${params.toString()}`;
   }, [amount, message, recipient, selected, sender]);
@@ -146,6 +141,12 @@ export function LunchDropApp() {
             <div className="step-line" />
             <div className="step-label"><span>3</span><div><b>Send the link</b><small>They claim with Blackbird</small></div></div>
           </div>
+
+          <aside className="integration-proof">
+            <span className="live-pill"><i /> LIVE API</span>
+            <div><b>Flynet powers every restaurant choice</b><small>GET /flynet/v1/locations → real Blackbird venues, cities, neighborhoods, cuisines and images.</small></div>
+            <a href="https://docs.flynet.org/api-reference/locations/list" target="_blank" rel="noreferrer">View Flynet endpoint ↗</a>
+          </aside>
 
           <div className="builder-grid">
             <section className="panel restaurant-panel">
