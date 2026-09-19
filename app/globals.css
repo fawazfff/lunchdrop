@@ -1134,3 +1134,45 @@ body.lunchie-party::after {
     display: none;
   }
 }
+
+
+/* Optional recipient reward upgrade */
+.reward-upgrade {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(23,22,18,.18);
+  border-radius: 10px;
+  background: #fff8d6;
+}
+.reward-upgrade h3 {
+  margin: 6px 0 6px;
+  font-size: 20px;
+  letter-spacing: -.035em;
+}
+.reward-upgrade p {
+  margin: 0;
+  color: rgba(23,22,18,.62);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.blackbird-reward-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
+  font-weight: 850;
+  box-shadow: 4px 4px 0 var(--yellow);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.blackbird-reward-button:hover {
+  transform: translate(-2px,-2px);
+  box-shadow: 7px 7px 0 var(--yellow);
+}
