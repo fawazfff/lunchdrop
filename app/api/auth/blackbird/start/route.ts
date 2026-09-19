@@ -6,12 +6,22 @@ const CLIENT_ID = process.env.FLYNET_CLIENT_ID ?? "19a0b552-ff8e-43de-b47a-bbc32
 const REDIRECT_URI = process.env.REDIRECT_URI || "https://lunchdrop.vercel.app/api/auth/blackbird/callback";
 const AUTH_BASE = process.env.FLYNET_AUTH_BASE ?? "https://api.blackbird.xyz/oauth";
 
+function safeReturnPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  return value.slice(0, 300);
+}
+
 export async function GET(request: Request) {
-  const token = new URL(request.url).searchParams.get("t") ?? "";
-  try {
-    verifyClaim(token);
-  } catch {
-    return NextResponse.redirect(new URL("/claim?oauth_error=invalid_claim", request.url));
+  const url = new URL(request.url);
+  const token = url.searchParams.get("t") ?? "";
+  const returnPath = safeReturnPath(url.searchParams.get("return"));
+
+  if (token) {
+    try {
+      verifyClaim(token);
+    } catch {
+      return NextResponse.redirect(new URL("/claim?oauth_error=invalid_claim", request.url));
+    }
   }
 
   const verifier = randomBytes(48).toString("base64url");
@@ -32,7 +42,9 @@ export async function GET(request: Request) {
   const options = { httpOnly: true, secure: true, sameSite: "lax" as const, maxAge: 10 * 60, path: "/api/auth/blackbird" };
   response.cookies.set("ld_oauth_state", state, options);
   response.cookies.set("ld_oauth_verifier", verifier, options);
-  response.cookies.set("ld_claim", token, options);
+  response.cookies.set("ld_oauth_mode", token ? "claim" : "connect", options);
+  response.cookies.set("ld_oauth_return", returnPath, options);
+  if (token) response.cookies.set("ld_claim", token, options);
+  else response.cookies.delete("ld_claim");
   return response;
 }
-
