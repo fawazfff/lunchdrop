@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { openLunchDrop } from "../../../../lib/lunchdrop-db";
+import { allowLunchDropRequest } from "../../../../lib/rate-limit";
 
 const CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6,12}$/;
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
   try {
+    if (!(await allowLunchDropRequest(request, "claim-open", 180, 600))) {
+      return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429, headers: { "Retry-After": "60" } });
+    }
     const { code } = await params;
     const normalized = code.toUpperCase();
     if (!CODE.test(normalized)) {
