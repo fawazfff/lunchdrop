@@ -13,6 +13,7 @@ export function ClaimCard() {
   const sender = params.get("f") || params.get("from") || "A friend";
   const amount = Number(params.get("a") || params.get("amount") || 15);
   const message = params.get("m") || params.get("message") || "Lunch is on me today 💛";
+  const special = params.get("s");
   const [venue, setVenue] = useState<Venue>({
     name: params.get("restaurant") || "a Blackbird restaurant",
     location: params.get("location") || "Nearby",
@@ -39,11 +40,12 @@ export function ClaimCard() {
           <h1>{claimed ? "Lunch claimed!" : `${sender} sent you lunch.`}</h1>
           <blockquote>“{message}”</blockquote>
           <div className="claim-details">
-            <div><small>YOUR LUNCHDROP</small><strong>${amount}</strong><span>in FLY</span></div>
+            <div><small>YOUR LUNCHDROP</small><strong>{amount} FLY</strong><span>gift budget</span></div>
             <div><small>TRY IT AT</small><strong>{venue.name}</strong><span>{venue.location} · {venue.neighborhood}</span></div>
           </div>
+          {special ? <p className="claim-special"><b>Picked for you:</b> {special}</p> : null}
           {!claimed ? (
-            <button className="claim-button" type="button" onClick={() => setClaimed(true)}>Connect Blackbird to claim <span>→</span></button>
+            <button className="claim-button" type="button" onClick={() => setClaimed(true)}>Preview demo claim <span>→</span></button>
           ) : (
             <div className="claim-success"><span>✓</span><div><b>Added to your Blackbird wallet</b><small>Demo claim · live wallet transfer connects next</small></div></div>
           )}
