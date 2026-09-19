@@ -39,6 +39,8 @@ export function LunchDropApp() {
   const [cities, setCities] = useState<string[]>(["New York, NY"]);
   const [search, setSearch] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
+  const [neighborhood, setNeighborhood] = useState("All neighborhoods");
+  const [cuisine, setCuisine] = useState("All cuisines");
   const [selected, setSelected] = useState<Restaurant | null>(null);
   const [amount, setAmount] = useState(15);
   const [specials, setSpecials] = useState<Special[]>([]);
@@ -48,6 +50,8 @@ export function LunchDropApp() {
   const [message, setMessage] = useState("Lunch is on me today 💛");
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [claimLink, setClaimLink] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,30 +92,37 @@ export function LunchDropApp() {
   const filteredRestaurants = useMemo(() => {
     const query = search.trim().toLowerCase();
     const paymentLocations = restaurants.filter((restaurant) => restaurant.paymentsEnabled);
-    if (!query) return paymentLocations;
     return paymentLocations.filter((restaurant) =>
-      [restaurant.name, restaurant.location, restaurant.neighborhood, ...restaurant.cuisine]
-        .some((value) => value.toLowerCase().includes(query)),
+      (neighborhood === "All neighborhoods" || restaurant.neighborhood === neighborhood) &&
+      (cuisine === "All cuisines" || restaurant.cuisine.includes(cuisine)) &&
+      (!query || [restaurant.name, restaurant.location, restaurant.neighborhood, ...restaurant.cuisine]
+        .some((value) => value.toLowerCase().includes(query))),
     );
-  }, [restaurants, search]);
+  }, [cuisine, neighborhood, restaurants, search]);
 
-  const claimLink = useMemo(() => {
-    if (!selected || typeof window === "undefined") return "";
-    const params = new URLSearchParams({
-      l: selected.locationId,
-      t: recipient.trim() || "A friend",
-      f: sender.trim() || "A friend",
-      a: String(amount),
-      m: message,
-      ...(selectedSpecial ? { s: selectedSpecial.label } : {}),
-    });
-    return `${window.location.origin}/claim?${params.toString()}`;
-  }, [amount, message, recipient, selected, selectedSpecial, sender]);
+  const neighborhoods = useMemo(() => ["All neighborhoods", ...new Set(restaurants.filter((item) => item.paymentsEnabled).map((item) => item.neighborhood))].sort(), [restaurants]);
+  const cuisines = useMemo(() => ["All cuisines", ...new Set(restaurants.filter((item) => item.paymentsEnabled).flatMap((item) => item.cuisine))].sort(), [restaurants]);
 
-  function createDrop() {
+  async function createDrop() {
     if (!selected) return;
-    setSent(true);
-    setTimeout(() => document.querySelector("#drop-ready")?.scrollIntoView({ behavior: "smooth" }), 50);
+    setCreating(true);
+    setError("");
+    try {
+      const response = await fetch("/api/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locationId: selected.locationId, recipient, sender, amount, message, special: selectedSpecial?.label }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Unable to create LunchDrop");
+      setClaimLink(`${window.location.origin}${payload.url}`);
+      setSent(true);
+      setTimeout(() => document.querySelector("#drop-ready")?.scrollIntoView({ behavior: "smooth" }), 50);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to create LunchDrop");
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function copyLink() {
@@ -201,6 +212,10 @@ export function LunchDropApp() {
                 {cities.map((option) => <option value={option} key={option}>{option}</option>)}
               </select>
               <input className="text-input restaurant-search" value={search} onChange={(event) => { setSearch(event.target.value); setVisibleCount(6); }} placeholder="Search FLY-ready restaurants" aria-label="Search restaurants" />
+              <div className="filter-grid">
+                <select className="text-input" value={neighborhood} onChange={(event) => { setNeighborhood(event.target.value); setVisibleCount(6); }} aria-label="Filter by neighborhood">{neighborhoods.map((item) => <option key={item}>{item}</option>)}</select>
+                <select className="text-input" value={cuisine} onChange={(event) => { setCuisine(event.target.value); setVisibleCount(6); }} aria-label="Filter by cuisine">{cuisines.map((item) => <option key={item}>{item}</option>)}</select>
+              </div>
 
               {loading && <div className="restaurant-loading"><i /><i /><i /></div>}
               {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span></div>}
@@ -223,6 +238,7 @@ export function LunchDropApp() {
                   </button>
                 ))}
               </div>
+              {!loading && !error && filteredRestaurants.length === 0 ? <div className="empty-card"><b>No FLY-ready restaurants match.</b><span>Try another city or clear a filter.</span></div> : null}
               {visibleCount < filteredRestaurants.length ? <button className="load-more" type="button" onClick={() => setVisibleCount((count) => count + 8)}>Show more ({filteredRestaurants.length - visibleCount} left)</button> : null}
               <p className="api-note">{filteredRestaurants.length} live Flynet locations · cached for 60 minutes to protect API usage</p>
             </section>
@@ -253,10 +269,10 @@ export function LunchDropApp() {
               <textarea id="message" className="text-input note-input" value={message} maxLength={100} onChange={(event) => { setMessage(event.target.value); setSent(false); }} />
               <div className="character-count">{message.length}/100</div>
 
-              <button className="send-button" type="button" disabled={!selected || !sender.trim() || !recipient.trim()} onClick={createDrop}>
-                Create {fly(amount)} LunchDrop <span>→</span>
+              <button className="send-button" type="button" disabled={!selected || !sender.trim() || !recipient.trim() || creating} onClick={createDrop}>
+                {creating ? "Securing claim link…" : `Create ${fly(amount)} LunchDrop`} <span>→</span>
               </button>
-              <p className="fine-print">Live Flynet restaurant discovery. This prototype creates a shareable lunch invitation; wallet transfer comes after Blackbird connection.</p>
+              <p className="fine-print">Creates a signed, tamper-resistant test claim. The restaurant is a recommendation; delivered FLY can be used at participating Blackbird locations.</p>
             </section>
           </div>
 
@@ -266,7 +282,7 @@ export function LunchDropApp() {
               <div className="ready-copy">
                 <span className="eyebrow">YOUR LUNCHDROP IS READY</span>
                 <h2>{recipient}’s lunch is one link away.</h2>
-                <p>{fly(amount)} for <strong>{selectedSpecial?.label || "anything they like"}</strong> at {selected.name}.</p>
+                <p>{fly(amount)} with <strong>{selectedSpecial?.label || selected.name}</strong> as your recommendation.</p>
               </div>
               <div className="link-box"><span>{claimLink}</span><button type="button" onClick={copyLink}>{copied ? "Copied!" : "Copy link"}</button></div>
               <a className="preview-link" href={claimLink}>Preview what {recipient} sees →</a>

@@ -1,15 +1,17 @@
 import { InfoPage } from "../components/InfoPage";
 
 const faqs = [
-  ["Are the restaurants real?", "Yes. LunchDrop loads restaurant locations, neighborhoods, cuisine and images from Flynet’s live API."],
-  ["Are the dishes and prices real?", "Only Flynet Specials are shown as menu highlights. Flynet does not expose full menus or regular dish prices, so LunchDrop never invents them."],
-  ["Can I connect my Blackbird account?", "Not yet. Flynet OAuth requires a client secret and an exactly registered callback URL. The current app credentials include restaurant API access, but not the OAuth secret required for member sign-in."],
-  ["Does money move today?", "No. The current claim is a demo invitation. Real FLY transfers require Blackbird OAuth plus Flynet Payment Intents."],
-  ["How are API limits protected?", "Restaurant pages and specials are cached for 60 minutes. The app loads all paginated locations once per cache window rather than polling."],
+  ["Are the restaurants real?", "Yes. LunchDrop loads live Blackbird locations, neighborhoods, cuisine, images, payment availability, and specials from Flynet."],
+  ["Can the FLY only be spent at the selected restaurant?", "No. The restaurant is a thoughtful recommendation. Once delivered, FLY belongs to the recipient and can be used at participating Blackbird locations."],
+  ["Are dishes and prices real?", "Only current Flynet Specials are shown. Flynet does not expose complete menus or regular dish prices, so LunchDrop never invents them."],
+  ["Does FLY move today?", "The app wallet is funded with 100 test FLY. Automated member delivery is awaiting Flynet OAuth client-secret and write:rewards approval; the current claim screen is clearly marked as test mode."],
+  ["Are claim links safe?", "LunchDrop now creates claim tokens on the server and verifies their signatures before displaying the gift, so recipients cannot change the amount or restaurant in the URL."],
+  ["How are API limits protected?", "Locations and specials are cached for 60 minutes. LunchDrop fetches paginated data once per cache window rather than polling Flynet."],
 ];
 
 export default function FaqPage() {
-  return <InfoPage eyebrow="STRAIGHT ANSWERS" title="LunchDrop FAQ" intro="What is live, what comes from Flynet, and what still needs merchant access.">
+  return <InfoPage eyebrow="STRAIGHT ANSWERS" title="LunchDrop FAQ" intro="What is live, what comes from Flynet, and what remains in test mode.">
     <div className="faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div>
   </InfoPage>;
 }
+
