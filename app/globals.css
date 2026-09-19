@@ -874,3 +874,151 @@ body.lunchie-party::after {
   .page-curtain { display: none; }
   .motion-scale::after { display: none; }
 }
+
+
+/* Visible Blackbird integration */
+.blackbird-integration {
+  position: relative;
+  overflow: hidden;
+  margin-top: 22px;
+  padding: 30px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px 22px;
+  border: 1px solid #171612;
+  border-radius: 16px;
+  background: #171612;
+  color: white;
+  box-shadow: 8px 8px 0 var(--orange);
+}
+.blackbird-integration::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -110px;
+  width: 240px;
+  height: 240px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 50%;
+  box-shadow: 0 0 0 35px rgba(255,255,255,.035), 0 0 0 70px rgba(255,255,255,.025);
+}
+.blackbird-integration.compact {
+  margin: 0 0 22px;
+  padding: 20px;
+  box-shadow: 5px 5px 0 var(--orange);
+}
+.blackbird-mark,
+.blackbird-mini-mark {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: white;
+  color: #171612;
+  font-family: Georgia,serif;
+  font-style: italic;
+  font-weight: 900;
+}
+.blackbird-mark {
+  width: 54px;
+  height: 54px;
+  font-size: 27px;
+  box-shadow: 0 0 0 6px rgba(255,255,255,.08);
+}
+.blackbird-mini-mark { width: 24px; height: 24px; font-size: 13px; flex: 0 0 auto; }
+.blackbird-copy { position: relative; z-index: 2; }
+.blackbird-copy .eyebrow { color: var(--yellow); }
+.blackbird-copy h2 { margin: 8px 0 9px; font-size: clamp(25px,3vw,38px); letter-spacing: -.045em; }
+.blackbird-copy p { max-width: 780px; margin: 0; color: rgba(255,255,255,.7); line-height: 1.55; }
+.blackbird-scopes { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.blackbird-scopes span {
+  padding: 6px 9px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  font: 750 9px/1 var(--font-geist-mono),monospace;
+  letter-spacing: .04em;
+}
+.blackbird-flow {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+}
+.blackbird-flow span,
+.blackbird-flow strong {
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.08);
+  font-size: 11px;
+}
+.blackbird-flow strong { background: var(--yellow); color: var(--ink); }
+.blackbird-flow b { color: var(--orange); }
+.blackbird-note {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  color: rgba(255,255,255,.62);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.blackbird-note i {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: #48a85f;
+  box-shadow: 0 0 0 5px rgba(72,168,95,.12);
+}
+.blackbird-connect-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+.nav-blackbird {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: white;
+  font-size: 10px;
+  font-weight: 850;
+}
+.nav-blackbird::before {
+  content: "B";
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: white;
+  color: var(--ink);
+  font-family: Georgia,serif;
+  font-style: italic;
+}
+
+/* Short-link presentation */
+.link-box span {
+  direction: ltr;
+}
+.link-box span::selection { background: var(--yellow); color: var(--ink); }
+
+@media (max-width: 760px) {
+  .blackbird-integration { grid-template-columns: 1fr; padding: 24px 20px; }
+  .blackbird-flow,
+  .blackbird-note { grid-column: 1; }
+  .blackbird-mark { width: 46px; height: 46px; }
+}
