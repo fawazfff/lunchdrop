@@ -7,27 +7,26 @@ export function BlackbirdIntegration({ compact = false }: BlackbirdIntegrationPr
     <section className={`blackbird-integration ${compact ? "compact" : ""}`} id="blackbird-integration">
       <div className="blackbird-mark" aria-hidden="true">B</div>
       <div className="blackbird-copy">
-        <span className="eyebrow">BLACKBIRD APP INTEGRATION</span>
-        <h2>Blackbird connects on the recipient side.</h2>
+        <span className="eyebrow">BLACKBIRD IS OPTIONAL</span>
+        <h2>Connect Blackbird only if you want the FLY reward.</h2>
         <p>
-          Anyone can open and test a LunchDrop without an account. When a recipient wants the connected flow,
-          they tap <strong>Connect Blackbird</strong> on the claim screen. LunchDrop starts Blackbird OAuth,
-          requests member profile and wallet access, then attempts the test FLY reward flow.
+          Anyone can open a LunchDrop without an account. If the person receiving it wants to try the FLY reward,
+          they can connect their own Blackbird account after opening the gift.
         </p>
         <div className="blackbird-scopes">
-          <span>OAuth + PKCE</span>
-          <span>read:profile</span>
-          <span>read:wallets</span>
-          <span>FLY rewards</span>
+          <span>Optional</span>
+          <span>Blackbird sign-in</span>
+          <span>Member check</span>
+          <span>FLY reward</span>
         </div>
       </div>
       <div className="blackbird-flow" aria-label="Blackbird connection flow">
-        <span>Open gift</span><b>→</b><strong>Connect Blackbird</strong><b>→</b><span>Member verified</span><b>→</b><span>Test FLY</span>
+        <span>Open gift</span><b>→</b><strong>Connect Blackbird</strong><b>→</b><span>Confirm member</span><b>→</b><span>Try FLY reward</span>
       </div>
       <div className="blackbird-note">
         <i />
-        <span>The sign-in button appears after a recipient opens a real LunchDrop, because that recipient is the person authorizing their Blackbird account.</span>
-        <a href="/status">View live integration status →</a>
+        <span>The sender never needs to connect Blackbird. The recipient chooses whether to connect after opening the gift.</span>
+        <a href="/status">See what’s working →</a>
       </div>
     </section>
   );

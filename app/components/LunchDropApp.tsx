@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LunchBuddy } from "./LunchBuddy";
-import { BlackbirdIntegration } from "./BlackbirdIntegration";
 import { SiteNav } from "./SiteNav";
 
 type Restaurant = {
@@ -388,8 +387,8 @@ export function LunchDropApp() {
       <section className="send-intro shell">
         <span className="eyebrow">CREATE A LUNCHDROP</span>
         <h1>Pick the lunch. Add the note. Send the link.</h1>
-        <p>Everything below is the real sender flow. Restaurant choices come from Flynet and new gifts use short Supabase-backed claim links.</p>
-        <div className="send-intro-links"><a href="/live">Browse live Flynet places →</a><a href="/blackbird">How Blackbird connects →</a></div>
+        <p>Pick a real restaurant, add the gift details, then share one short private link.</p>
+        <div className="send-intro-links"><a href="/live">Browse live places →</a><a href="/blackbird">How Blackbird works →</a></div>
       </section>
 
       <section className="builder-section" id="build-drop">
@@ -404,12 +403,16 @@ export function LunchDropApp() {
             <div className="step-label"><span>3</span><div><b>Send the link</b><small>No account required</small></div></div>
           </div>
 
-          <BlackbirdIntegration compact />
+          <div className="sender-blackbird-note">
+            <span className="blackbird-mini-mark">B</span>
+            <div><b>Blackbird is optional.</b><small>Your friend only connects Blackbird later if they want to try the FLY reward.</small></div>
+            <a href="/blackbird">How it works →</a>
+          </div>
 
           <aside className="integration-proof">
-            <span className="live-pill"><i /> LIVE API</span>
-            <div><b>Flynet powers every restaurant choice</b><small>Real Blackbird venues, cities, neighborhoods, cuisines, images, payment availability, and live specials.</small></div>
-            <a href="/live">Open live Flynet explorer →</a>
+            <span className="live-pill"><i /> LIVE PLACES</span>
+            <div><b>These restaurant choices come from Flynet</b><small>Real Blackbird places, neighborhoods, cuisines, photos, payment availability, and current specials.</small></div>
+            <a href="/live">Browse all live places →</a>
           </aside>
 
           <div className="builder-grid">
@@ -420,7 +423,7 @@ export function LunchDropApp() {
               <select id="city" className="text-input city-select" value={city} onChange={(event) => { setCity(event.target.value); setSent(false); }}>
                 {cities.map((option) => <option value={option} key={option}>{option}</option>)}
               </select>
-              <input className="text-input restaurant-search" value={search} onChange={(event) => { setSearch(event.target.value); setVisibleCount(6); }} placeholder="Search FLY-ready restaurants" aria-label="Search restaurants" />
+              <input className="text-input restaurant-search" value={search} onChange={(event) => { setSearch(event.target.value); setVisibleCount(6); }} placeholder="Search restaurants" aria-label="Search restaurants" />
               <div className="filter-grid">
                 <select className="text-input" value={neighborhood} onChange={(event) => { setNeighborhood(event.target.value); setVisibleCount(6); }} aria-label="Filter by neighborhood">{neighborhoods.map((item) => <option key={item}>{item}</option>)}</select>
                 <select className="text-input" value={cuisine} onChange={(event) => { setCuisine(event.target.value); setVisibleCount(6); }} aria-label="Filter by cuisine">{cuisines.map((item) => <option key={item}>{item}</option>)}</select>
@@ -443,7 +446,7 @@ export function LunchDropApp() {
               </div>
               {!loading && !error && filteredRestaurants.length === 0 ? <div className="empty-card"><b>No FLY-ready restaurants match.</b><span>Try another city or clear a filter.</span></div> : null}
               {visibleCount < filteredRestaurants.length ? <button className="load-more" type="button" onClick={() => setVisibleCount((count) => count + 8)}>Show more ({filteredRestaurants.length - visibleCount} left)</button> : null}
-              <p className="api-note">{filteredRestaurants.length} live Flynet locations · cached for 60 minutes to protect API usage</p>
+              <p className="api-note">{filteredRestaurants.length} live places found on Flynet</p>
             </section>
 
             <section className="panel details-panel">
@@ -456,21 +459,21 @@ export function LunchDropApp() {
               <label className="field-label" htmlFor="recipient">Who’s getting lunch?</label>
               <input id="recipient" className="text-input" value={recipient} onChange={(event) => { setRecipient(event.target.value); setSent(false); }} placeholder="Friend’s first name" />
 
-              <span className="field-label">Flynet menu highlight</span>
+              <span className="field-label">Restaurant special</span>
               {specials.length > 0 ? <div className="special-list">
                 {specials.map((special) => <button type="button" className={selectedSpecial?.id === special.id ? "active" : ""} key={special.id} onClick={() => { setSelectedSpecial(special); setSent(false); }}>
                   <span>{special.emoji || "✦"}</span><div><b>{special.label}</b><small>{special.description || "Live restaurant special"}</small>{rewardFly(special) ? <em>{rewardFly(special)}</em> : null}</div>
                 </button>)}
-              </div> : <p className="no-special">Flynet has no current menu highlight for this restaurant. Regular menu prices are not included in the API.</p>}
+              </div> : <p className="no-special">No current special is available for this restaurant. LunchDrop only shows specials provided by Flynet.</p>}
 
-              <label className="field-label" htmlFor="amount">Gift budget in FLY</label>
+              <label className="field-label" htmlFor="amount">How much FLY are you sending?</label>
               <div className="amount-grid" aria-label="Quick FLY amounts">
                 {[5, 15, 30].map((value) => <button type="button" className={amount === value ? "active" : ""} key={value} onClick={() => { setAmount(value); setSent(false); }}>{value} FLY</button>)}
                 <button type="button" className={![5, 15, 30].includes(amount) ? "active" : ""} onClick={() => document.getElementById("amount")?.focus()}>Custom</button>
               </div>
               <input id="amount" className="text-input amount-custom-input" aria-label="Custom FLY amount" type="number" min="1" max="100" step="1" value={amount} onChange={(event) => { setAmount(Math.min(100, Math.max(1, Number(event.target.value)))); setSent(false); }} />
 
-              <span className="field-label">Gift link expiry</span>
+              <span className="field-label">How long should the gift stay open?</span>
               <div className="expiry-grid" aria-label="Choose how long the LunchDrop link stays valid">
                 {[1, 3, 7].map((days) => <button type="button" className={expiryDays === days ? "active" : ""} key={days} onClick={() => { setExpiryDays(days); setSent(false); }}>{days === 1 ? "24 hours" : `${days} days`}</button>)}
               </div>
@@ -480,9 +483,9 @@ export function LunchDropApp() {
               <div className="character-count">{message.length}/100</div>
 
               <button className="send-button" type="button" disabled={!selected || !sender.trim() || !recipient.trim() || creating} onClick={createDrop}>
-                {creating ? "Securing claim link…" : `Create ${fly(amount)} LunchDrop`} <span>→</span>
+                {creating ? "Creating your gift…" : `Create ${fly(amount)} LunchDrop`} <span>→</span>
               </button>
-              <p className="fine-print">Creates a short Supabase-backed claim link with cross-device status. The restaurant is a recommendation, not a lock-in.</p>
+              <p className="fine-print">Creates one short private link your friend can open on any device. The restaurant is a suggestion, not a restriction.</p>
             </section>
           </div>
 
@@ -497,9 +500,9 @@ export function LunchDropApp() {
               <div className="link-box"><span>{claimLink}</span><button type="button" onClick={copyLink}>{copied ? "Copied!" : "Copy link"}</button></div>
 
               <div className="sender-status">
-                <div className="sender-status-heading"><div><span className="eyebrow">{dbBacked ? "LIVE STATUS" : "DEMO STATUS"}</span><h3>Follow the LunchDrop</h3></div><small>{dbBacked ? "Cross-device status from Supabase" : "Live on this browser for the hackathon demo"}</small></div>
+                <div className="sender-status-heading"><div><span className="eyebrow">{dbBacked ? "LIVE STATUS" : "DEMO STATUS"}</span><h3>Follow the LunchDrop</h3></div><small>{dbBacked ? "Updates when your friend opens it on another device" : "Live on this browser for the hackathon demo"}</small></div>
                 <div className="status-timeline">
-                  <div className="status-step done"><span>✓</span><div><b>Created</b><small>Secure gift link generated</small></div></div>
+                  <div className="status-step done"><span>✓</span><div><b>Created</b><small>Gift link ready</small></div></div>
                   <div className={`status-step ${claimStatus !== "created" ? "done" : ""}`}><span>{claimStatus !== "created" ? "✓" : "2"}</span><div><b>Link shared</b><small>{claimStatus !== "created" ? "Link copied or opened" : "Copy the link to share it"}</small></div></div>
                   <div className={`status-step ${opened ? "done" : ""}`}><span>{opened ? "✓" : "3"}</span><div><b>Opened</b><small>{opened ? `${recipient}’s claim page was opened` : "Waiting for the recipient"}</small></div></div>
                   <div className={`status-step ${claimed ? "done" : ""}`}><span>{claimed ? "✓" : "4"}</span><div><b>Claimed</b><small>{claimStatus === "connected_claimed" ? "Test FLY delivered through Blackbird" : claimStatus === "demo_claimed" ? "Demo claim completed without sign-in" : claimStatus === "cancelled" ? "Cancelled by sender" : claimStatus === "expired" ? "Link expired" : "Waiting for claim"}</small></div></div>

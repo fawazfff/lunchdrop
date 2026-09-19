@@ -10,11 +10,11 @@ export async function GET() {
   const signingConfigured = Boolean(process.env.CLAIM_SIGNING_SECRET || apiKey);
 
   let flynetState: CheckState = apiKey ? "configured" : "unavailable";
-  let flynetMessage = apiKey ? "Credentials are configured." : "FLYNET_API_KEY is missing.";
+  let flynetMessage = apiKey ? "Flynet is set up." : "Flynet is not set up.";
   let databaseState: CheckState = lunchdropDbEnabled() ? "configured" : "unavailable";
   let databaseMessage = lunchdropDbEnabled()
-    ? "Supabase connection is configured."
-    : "Supabase claim storage is not configured.";
+    ? "Gift storage is ready."
+    : "Gift storage is not ready.";
 
   if (apiKey) {
     try {
@@ -25,14 +25,14 @@ export async function GET() {
       });
       if (response.ok) {
         flynetState = "connected";
-        flynetMessage = "Live Flynet location request succeeded.";
+        flynetMessage = "Live restaurant data is working.";
       } else {
         flynetState = "unavailable";
         flynetMessage = `Flynet returned HTTP ${response.status}.`;
       }
     } catch {
       flynetState = "unavailable";
-      flynetMessage = "Flynet did not respond to the health check.";
+      flynetMessage = "Flynet did not respond.";
     }
   }
 
@@ -40,62 +40,62 @@ export async function GET() {
     try {
       await senderLunchDropStatus("ZZZZZZZ", "status-health-check-key-000000");
       databaseState = "connected";
-      databaseMessage = "Supabase claim RPC is reachable. Short links and cross-device status are enabled.";
+      databaseMessage = "Short gift links and cross-device status are working.";
     } catch {
       databaseState = "unavailable";
-      databaseMessage = "Supabase is configured but the claim RPC health check failed.";
+      databaseMessage = "Gift storage is set up, but the live check failed.";
     }
   }
 
   return NextResponse.json({
-    environment: "Hackathon test mode",
+    environment: "Demo mode",
     checkedAt: new Date().toISOString(),
     checks: [
       {
         id: "supabase-claims",
-        label: "Supabase claim storage",
+        label: "Gift storage & live status",
         state: databaseState,
         message: databaseMessage,
       },
       {
         id: "abuse-protection",
-        label: "Distributed abuse protection",
+        label: "Spam protection",
         state: databaseState === "connected" ? "connected" : "configured",
-        message: "Claim creation, opening, status checks, cancellation, restaurant changes, and Blackbird OAuth starts are protected by Supabase-backed rate limits.",
+        message: "Public actions are protected from repeated spam and abuse.",
       },
       {
         id: "flynet-discovery",
-        label: "Flynet discovery",
+        label: "Live restaurant data",
         state: flynetState,
         message: flynetMessage,
       },
       {
         id: "blackbird-oauth",
-        label: "Blackbird OAuth",
+        label: "Blackbird sign-in",
         state: clientId ? "configured" : "unavailable",
-        message: clientId ? "OAuth client and PKCE flow are configured." : "OAuth client is not configured.",
+        message: clientId ? "Blackbird sign-in is ready in the app." : "Blackbird sign-in is not ready.",
       },
       {
         id: "blackbird-member",
-        label: "Blackbird member profile",
+        label: "Blackbird member check",
         state: "not_verified",
-        message: "Implemented through /users/me. End-to-end member verification still needs a usable Blackbird test/member account.",
+        message: "The member check is built. It still needs one final test with an eligible Blackbird account.",
       },
       {
         id: "fly-rewards",
-        label: "Test FLY rewards",
+        label: "FLY reward delivery",
         state: apiKey ? "configured" : "unavailable",
         message: apiKey
-          ? "Reward issuing code is configured. Successful member delivery should be verified with a Blackbird test/member account."
-          : "Reward API credentials are missing.",
+          ? "The reward step is ready in the app. Final delivery still needs one eligible Blackbird member test."
+          : "The reward connection is not ready.",
       },
       {
         id: "signed-claims",
-        label: "Legacy signed-link fallback",
+        label: "Old-link fallback",
         state: signingConfigured ? "connected" : "unavailable",
         message: signingConfigured
-          ? "Legacy tamper-resistant claim links remain available as a fallback; new LunchDrops use Supabase short codes."
-          : "Legacy claim signing secret is missing.",
+          ? "Older LunchDrop links still work while new gifts use short private codes."
+          : "Older LunchDrop links are not available.",
       },
     ],
   }, {

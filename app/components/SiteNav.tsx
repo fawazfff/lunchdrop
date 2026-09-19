@@ -9,10 +9,8 @@ type SiteNavProps = {
 
 const links = [
   { href: "/how-it-works", label: "How it works", key: "how" },
-  { href: "/blackbird", label: "Blackbird", key: "blackbird" },
-  { href: "/live", label: "Live Flynet", key: "live" },
+  { href: "/live", label: "Live places", key: "live" },
   { href: "/history", label: "My LunchDrops", key: "history" },
-  { href: "/status", label: "Status", key: "status" },
 ] as const;
 
 export function SiteNav({ current = "home" }: SiteNavProps) {
@@ -55,6 +53,8 @@ export function SiteNav({ current = "home" }: SiteNavProps) {
             <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button>
           </div>
           {[...links,
+            { href: "/blackbird", label: "About Blackbird", key: "blackbird" as const },
+            { href: "/status", label: "What’s working", key: "status" as const },
             { href: "/faq", label: "FAQ", key: "faq" as const },
             { href: "/about", label: "About", key: "about" as const },
           ].map((link) => (

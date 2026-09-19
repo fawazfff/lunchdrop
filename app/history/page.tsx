@@ -165,8 +165,7 @@ export default function HistoryPage() {
         <span className="eyebrow">MY LUNCHDROPS</span>
         <h1>Keep an eye on the lunches you sent.</h1>
         <p>
-          This browser keeps the private sender keys needed to read each LunchDrop’s cross-device status.
-          No account is required, and you can securely move this history to another device with a recovery file.
+          This browser remembers the LunchDrops you sent. No account is required, and you can move this history to another device with a private recovery file.
         </p>
         <div className="history-summary">
           <span><b>{items.length}</b> saved here</span>
@@ -179,10 +178,9 @@ export default function HistoryPage() {
         <section className="history-sync-card">
           <div>
             <span className="eyebrow">MOVE TO ANOTHER DEVICE</span>
-            <h2>Back up or recover your sender history.</h2>
+            <h2>Move your LunchDrops to another device.</h2>
             <p>
-              Export creates a private file containing your sender access keys. Importing it on another browser restores
-              your LunchDrop list and live Supabase status access. Keep the file private.
+              Export saves the private recovery information for your LunchDrops. Import that file on another browser to restore your list and live status. Keep the file private.
             </p>
           </div>
           <div className="history-sync-actions">
@@ -235,11 +233,9 @@ export default function HistoryPage() {
 
         {items.length > 0 ? (
           <div className="truth-card">
-            <b>Server status, private sender keys</b>
+            <b>Your status stays live</b>
             <p>
-              The gift and its Created → Opened → Claimed state live in Supabase. This page stores the private sender
-              access keys in your browser. Exporting a recovery file is the current no-account way to carry that access
-              to another device.
+              The gift status updates from the server. This browser keeps the private recovery information needed to see those updates. Exporting a recovery file lets you carry that access to another device without creating an account.
             </p>
           </div>
         ) : null}

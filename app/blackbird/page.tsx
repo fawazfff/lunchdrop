@@ -9,14 +9,13 @@ export default function BlackbirdPage() {
 
       <section className="info-hero shell">
         <span className="eyebrow">BLACKBIRD CONNECTION</span>
-        <h1>Connect Blackbird only when you want the member reward flow.</h1>
+        <h1>Connect Blackbird only when you want the FLY reward.</h1>
         <p>
-          LunchDrop works without a Blackbird account. Blackbird is optional and is used for member identity,
-          wallet access, and the connected test FLY reward path.
+          LunchDrop works without a Blackbird account. Connecting is optional and is only for the person receiving the gift who wants to try the FLY reward.
         </p>
         <div className="blackbird-page-actions">
           <BlackbirdConnect />
-          <a className="secondary-action" href="/status">View integration status</a>
+          <a className="secondary-action" href="/status">See what’s working</a>
         </div>
       </section>
 
@@ -27,28 +26,27 @@ export default function BlackbirdPage() {
           <article>
             <span>01</span>
             <h2>Sender</h2>
-            <p>The sender can create and share a LunchDrop without connecting Blackbird.</p>
+            <p>The sender can create and share a LunchDrop without a Blackbird account.</p>
             <a href="/send">Create a LunchDrop →</a>
           </article>
           <article>
             <span>02</span>
             <h2>Recipient</h2>
-            <p>The recipient can open and test the gift without signing in.</p>
+            <p>The recipient can open the gift and choose a restaurant without signing in.</p>
             <a href="/how-it-works">See the recipient flow →</a>
           </article>
           <article>
             <span>03</span>
             <h2>Optional reward</h2>
-            <p>If the recipient wants to try the connected test FLY path, they connect their own Blackbird account.</p>
-            <a href="/status">See what is verified →</a>
+            <p>If the recipient wants to try the FLY reward, they connect their own Blackbird account.</p>
+            <a href="/status">See what’s working →</a>
           </article>
         </div>
 
         <div className="truth-card">
-          <b>No fake connected state</b>
+          <b>We only say “connected” when it really connects</b>
           <p>
-            The UI only shows Blackbird as connected after the OAuth callback identifies a member.
-            The status page still marks end-to-end reward delivery as needing a usable Blackbird test/member account until that exact path is verified.
+            LunchDrop only shows Blackbird as connected after Blackbird confirms the member. The reward part stays clearly marked as a demo until we finish the final member test.
           </p>
         </div>
       </section>

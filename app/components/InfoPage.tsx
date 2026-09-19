@@ -22,8 +22,8 @@ export function InfoPage({
     <section className="info-content shell">{children}</section>
     <footer className="footer shell">
       <a className="brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
-      <div className="footer-links"><a href="/live">Live Flynet</a><a href="/blackbird">Blackbird</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
-      <p>Live restaurant discovery via Flynet</p>
+      <div className="footer-links"><a href="/live">Live places</a><a href="/blackbird">Blackbird</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
+      <p>Real restaurant choices from Flynet</p>
     </footer>
   </main>;
 }

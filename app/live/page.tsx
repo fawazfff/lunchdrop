@@ -58,15 +58,14 @@ export default function LiveFlynetPage() {
       <SiteNav current="live" />
 
       <section className="info-hero shell live-hero">
-        <span className="eyebrow">LIVE FLYNET EXPLORER</span>
-        <h1>See the restaurant data LunchDrop is actually using.</h1>
+        <span className="eyebrow">LIVE RESTAURANTS</span>
+        <h1>Browse the same restaurants LunchDrop uses.</h1>
         <p>
-          This page is powered by the same Flynet location endpoint used inside the LunchDrop sender flow.
-          Nothing here is a static restaurant list.
+          These are real Blackbird restaurant choices coming from Flynet. Pick one here, then send a LunchDrop there.
         </p>
         <div className="live-source-row">
-          <span className="live-pill"><i /> Live Flynet source</span>
-          <a className="secondary-action" href="/status">Check integration health</a>
+          <span className="live-pill"><i /> Live from Flynet</span>
+          <a className="secondary-action" href="/status">See what’s working</a>
         </div>
       </section>
 
@@ -107,8 +106,8 @@ export default function LiveFlynetPage() {
         {!loading && !error ? (
           <>
             <div className="live-summary">
-              <div><small>LIVE RESULTS</small><strong>{filtered.length}</strong><span>FLY-enabled locations</span></div>
-              <div><small>CITY</small><strong>{city}</strong><span>from Flynet location data</span></div>
+              <div><small>LIVE RESULTS</small><strong>{filtered.length}</strong><span>available places</span></div>
+              <div><small>CITY</small><strong>{city}</strong><span>live from Flynet</span></div>
               <div><small>USE IT</small><strong>Pick one</strong><span>then send a LunchDrop there</span></div>
             </div>
 
