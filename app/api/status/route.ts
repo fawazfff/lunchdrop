@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lunchdropDbEnabled, senderLunchDropStatus } from "../../lib/lunchdrop-db";
 
 type CheckState = "connected" | "configured" | "not_verified" | "unavailable";
 
@@ -10,6 +11,10 @@ export async function GET() {
 
   let flynetState: CheckState = apiKey ? "configured" : "unavailable";
   let flynetMessage = apiKey ? "Credentials are configured." : "FLYNET_API_KEY is missing.";
+  let databaseState: CheckState = lunchdropDbEnabled() ? "configured" : "unavailable";
+  let databaseMessage = lunchdropDbEnabled()
+    ? "Supabase connection is configured."
+    : "Supabase claim storage is not configured.";
 
   if (apiKey) {
     try {
@@ -31,10 +36,27 @@ export async function GET() {
     }
   }
 
+  if (lunchdropDbEnabled()) {
+    try {
+      await senderLunchDropStatus("ZZZZZZZ", "status-health-check-key-000000");
+      databaseState = "connected";
+      databaseMessage = "Supabase claim RPC is reachable. Short links and cross-device status are enabled.";
+    } catch {
+      databaseState = "unavailable";
+      databaseMessage = "Supabase is configured but the claim RPC health check failed.";
+    }
+  }
+
   return NextResponse.json({
     environment: "Hackathon test mode",
     checkedAt: new Date().toISOString(),
     checks: [
+      {
+        id: "supabase-claims",
+        label: "Supabase claim storage",
+        state: databaseState,
+        message: databaseMessage,
+      },
       {
         id: "flynet-discovery",
         label: "Flynet discovery",
