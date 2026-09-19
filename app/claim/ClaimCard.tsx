@@ -32,6 +32,7 @@ type Claim = {
   amount: number;
   message: string;
   special?: string;
+  expiresAt: number;
 };
 
 const oauthErrors: Record<string, string> = {
@@ -132,7 +133,10 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
   }, [token, claimed]);
 
   useEffect(() => {
-    if (claimed) setReceiptTime(new Date().toLocaleString());
+    if (claimed) {
+      setReceiptTime(new Date().toLocaleString());
+      window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "Blackbird reward confirmed." }));
+    }
   }, [claimed]);
 
   const receiptStatus = claimed
@@ -146,6 +150,9 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
     : "No FLY moved in demo mode";
 
   const selectedPlace = chosenVenue ?? venue;
+  const expiryLabel = claim?.expiresAt
+    ? new Date(claim.expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+    : "";
 
   const alternativeVenues = useMemo(
     () => alternatives.map((restaurant) => ({
@@ -162,6 +169,7 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
     setChosenVenue(nextVenue);
     setShowAlternatives(false);
     if (claim) window.localStorage.setItem(`lunchdrop-venue-${claim.id}`, JSON.stringify(nextVenue));
+    window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: `${nextVenue.name} selected.` }));
   }
 
   function finishDemo() {
@@ -169,6 +177,7 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
     setDemoComplete(true);
     setReceiptTime(new Date().toLocaleString());
     window.localStorage.setItem(`lunchdrop-status-${claim.id}`, "demo_claimed");
+    window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "Demo claim complete. No FLY moved." }));
   }
 
   if (loading) {
@@ -217,6 +226,7 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
           </div>
 
           {claim.special && selectedPlace.name === venue.name ? <p className="claim-special"><b>Sender’s menu highlight:</b> {claim.special}</p> : null}
+          {expiryLabel ? <p className="claim-expiry"><span>⌛</span> This secure LunchDrop link expires {expiryLabel}.</p> : null}
 
           {!claimed && !demoComplete ? (
             <section className="recipient-choice">
