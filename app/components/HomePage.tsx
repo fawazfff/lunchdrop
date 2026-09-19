@@ -1,4 +1,5 @@
 import { LunchBuddy } from "./LunchBuddy";
+import { BlackbirdIntegration } from "./BlackbirdIntegration";
 
 export function HomePage() {
   return (
@@ -43,6 +44,8 @@ export function HomePage() {
             <div><span className="eyebrow">BUILT WITH BLACKBIRD + FLYNET</span><h2>Real data. Real member flow.</h2><p>LunchDrop uses Flynet for live restaurant discovery and Blackbird for optional member sign-in and test FLY reward delivery.</p></div>
             <div className="proof-list"><span>✓ Live Flynet locations</span><span>✓ Blackbird member OAuth</span><span>✓ Test FLY reward delivery</span><span>✓ Signed one-time claim links</span></div>
           </section>
+
+          <BlackbirdIntegration />
 
           <div className="truth-strip"><strong>No account required:</strong><span>Anyone can test the recipient claim flow. Blackbird sign-in is optional and only needed if they want to try connected test FLY delivery.</span></div>
           <div className="home-cta"><div><span className="eyebrow">READY?</span><h2>Make someone’s day.</h2></div><a className="primary-button" href="/send">Send lunch <span>→</span></a></div>
