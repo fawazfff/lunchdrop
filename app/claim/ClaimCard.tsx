@@ -33,6 +33,11 @@ type Claim = {
   message: string;
   special?: string;
   expiresAt: number;
+  status?: string;
+  chosenLocationId?: string;
+  demoClaimedAt?: string;
+  connectedClaimedAt?: string;
+  rewardId?: string;
 };
 
 const oauthErrors: Record<string, string> = {
@@ -193,7 +198,7 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
       : "";
 
   const receiptReward = claimed
-    ? (rewardId ? rewardId : "Confirmed by Blackbird")
+    ? (rewardId || claim?.rewardId || "Confirmed by Blackbird")
     : "No FLY moved in demo mode";
 
   const selectedPlace = chosenVenue ?? venue;
