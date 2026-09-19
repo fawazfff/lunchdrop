@@ -4,13 +4,14 @@ import { useState } from "react";
 import { BlackbirdConnect } from "./BlackbirdConnect";
 
 type SiteNavProps = {
-  current?: "home" | "send" | "how" | "blackbird" | "live" | "status" | "faq" | "about";
+  current?: "home" | "send" | "how" | "blackbird" | "live" | "history" | "status" | "faq" | "about";
 };
 
 const links = [
   { href: "/how-it-works", label: "How it works", key: "how" },
   { href: "/blackbird", label: "Blackbird", key: "blackbird" },
   { href: "/live", label: "Live Flynet", key: "live" },
+  { href: "/history", label: "My LunchDrops", key: "history" },
   { href: "/status", label: "Status", key: "status" },
 ] as const;
 
