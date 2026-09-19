@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LunchBuddy } from "./LunchBuddy";
 import { BlackbirdIntegration } from "./BlackbirdIntegration";
+import { BlackbirdConnect } from "./BlackbirdConnect";
 
 type Restaurant = {
   id: string;
@@ -187,7 +188,7 @@ export function LunchDropApp() {
       <nav className="nav shell">
         <a className="brand" href="/" aria-label="LunchDrop home"><span className="brand-mark">L</span><span>LunchDrop</span></a>
         <div className="nav-links"><a href="/how-it-works">How it works</a><a href="#blackbird-integration">Blackbird</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
-        <div className="nav-actions"><a className="nav-blackbird" href="#blackbird-integration">Blackbird OAuth</a><span className="live-pill"><i /> Live Flynet data</span><a className="ghost-button" href="/">Home</a></div>
+        <div className="nav-actions"><BlackbirdConnect compact /><span className="live-pill"><i /> Live Flynet data</span><a className="ghost-button" href="/">Home</a></div>
       </nav>
 
       <section className="hero shell" id="top">
