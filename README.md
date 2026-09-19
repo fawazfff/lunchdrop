@@ -13,7 +13,7 @@ Live app: https://lunchdrop.vercel.app
 1. Sender opens LunchDrop.
 2. LunchDrop loads live restaurant/location data from Flynet.
 3. Sender chooses a restaurant recommendation, FLY amount, note, and link expiry.
-4. LunchDrop creates a compact HMAC-signed claim URL.
+4. LunchDrop writes the gift to Supabase and creates a short capability URL such as `/c/X7K4P9`.
 5. Recipient opens the gift.
 6. Recipient can:
    - test the claim experience without signing in, or
@@ -58,17 +58,24 @@ The UI distinguishes between:
 
 LunchDrop does not intentionally present an unverified external result as successful.
 
-## Secure claim links
+## Persistent short claim links
 
-New claim URLs use:
+New LunchDrops are stored in the dedicated Supabase database and use short claim codes such as:
 
-`/c/<compact-signed-token>`
+`/c/X7K4P9`
 
-The token contains only the data needed to open the gift and is protected with an HMAC signature. Modified or expired links are rejected.
+The short code is a capability URL. The gift payload stays server-side, so recipient names, notes and restaurant data are no longer carried in the share URL.
 
-Older `/claim?t=...` links remain supported for compatibility.
+The database now persists:
 
-Current non-database limitation: the claim payload itself is still carried in the signed link. The next database upgrade will replace this with a short server-side claim code.
+- Created / Opened / Demo claimed / Blackbird claimed / Cancelled state
+- expiry
+- recipient restaurant choice
+- Blackbird reward receipt ID when available
+- sender-only status access using a separate secret
+- event records for created, opened, restaurant selection, claims and cancellation
+
+Older signed-token claim links remain supported for compatibility.
 
 ## Integration status
 
@@ -93,14 +100,14 @@ This makes it clear which external paths have actually been tested.
 - Live Flynet specials
 - 5 / 15 / 30 FLY presets + custom amount
 - 24-hour / 3-day / 7-day claim expiry
-- Secure compact claim links
+- Supabase-backed short claim links
 - Recipient restaurant choice
 - Optional Blackbird member connection
 - Test-without-sign-in recipient flow
 - Native share sheet
 - WhatsApp, Telegram, Messages, and copy-link sharing
 - Draft recovery after refresh
-- Same-browser demo status tracking
+- Cross-device Created → Opened → Claimed sender status
 - Claim receipt
 - Integration health/status page
 - Sound, motion, haptics where supported, branded loading states, and reduced-motion support
@@ -108,21 +115,31 @@ This makes it clear which external paths have actually been tested.
 - Private/noindex claim pages
 - Security/privacy response headers
 
-## What is waiting for the database
+## Supabase persistence
 
-The next phase will use a dedicated Supabase database for:
+LunchDrop now uses the dedicated Supabase project for:
 
-- truly short claim codes such as `/c/X7K4P9`
-- cross-device Created → Opened → Claimed status
-- one-time server-enforced claims
-- persistent sender receipts
-- cancellation before claim
-- server-side claim history
-- real analytics/event tracking
-- stronger abuse/rate-limit controls
-- cross-device recipient restaurant choice
+- short 7-character claim codes
+- cross-device sender status
+- server-side claim expiry
+- persistent recipient restaurant choice
+- cancellation before a connected reward claim
+- persistent reward receipt IDs
+- server-side event history
+- row-level security on the underlying tables
 
-These are intentionally not faked in the current prototype.
+The browser never receives database write credentials. LunchDrop talks to constrained server/RPC paths instead of exposing direct table access.
+
+## Still intentionally not claimed as production-ready
+
+The remaining hardening work is mainly:
+
+- stronger distributed abuse/rate limiting
+- a polished QR-code generator for the final short link
+- optional authenticated sender accounts/history across different devices
+- full end-to-end Blackbird member/reward verification with an eligible test/member account
+
+The connected Blackbird reward path also uses an idempotency key so retries do not intentionally create a second reward.
 
 ## Environment variables
 
@@ -136,6 +153,8 @@ FLYNET_CLIENT_SECRET=
 FLYNET_AUTH_BASE=
 REDIRECT_URI=
 CLAIM_SIGNING_SECRET=
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
 ```
 
 Never expose `FLYNET_API_KEY`, the OAuth client secret, or claim-signing secrets to browser code.
