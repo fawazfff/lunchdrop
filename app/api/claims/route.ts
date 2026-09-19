@@ -15,8 +15,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please complete the gift details" }, { status: 400 });
     }
     const createdAt = Date.now();
-    const token = signClaim({ id: randomUUID(), locationId, recipient, sender, amount, message, special, createdAt, expiresAt: createdAt + 7 * 24 * 60 * 60 * 1000 });
-    return NextResponse.json({ url: `/claim?t=${encodeURIComponent(token)}` });
+    const claimId = randomUUID();
+    const token = signClaim({ id: claimId, locationId, recipient, sender, amount, message, special, createdAt, expiresAt: createdAt + 7 * 24 * 60 * 60 * 1000 });
+    return NextResponse.json({ url: `/claim?t=${encodeURIComponent(token)}`, claimId });
   } catch {
     return NextResponse.json({ error: "Unable to create a secure claim link" }, { status: 500 });
   }
