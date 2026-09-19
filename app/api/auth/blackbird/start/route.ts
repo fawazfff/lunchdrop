@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { verifyClaim } from "../../../../lib/claim-token";
 import { openLunchDrop } from "../../../../lib/lunchdrop-db";
+import { allowLunchDropRequest } from "../../../../lib/rate-limit";
 
 const CLIENT_ID = process.env.FLYNET_CLIENT_ID ?? "19a0b552-ff8e-43de-b47a-bbc32ee0cd8a";
 const REDIRECT_URI = process.env.REDIRECT_URI || "https://lunchdrop.vercel.app/api/auth/blackbird/callback";
@@ -14,6 +15,9 @@ function safeReturnPath(value: string | null) {
 }
 
 export async function GET(request: Request) {
+  if (!(await allowLunchDropRequest(request, "blackbird-oauth-start", 40, 600))) {
+    return NextResponse.json({ error: "Too many Blackbird sign-in attempts. Please wait a few minutes." }, { status: 429, headers: { "Retry-After": "600" } });
+  }
   const url = new URL(request.url);
   const token = url.searchParams.get("t") ?? "";
   const code = (url.searchParams.get("c") ?? "").toUpperCase();
