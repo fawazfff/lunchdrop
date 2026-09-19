@@ -1,33 +1,46 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type Venue = { name: string; location: string; neighborhood: string; image: string };
 
 export function ClaimCard() {
   const params = useSearchParams();
   const [claimed, setClaimed] = useState(false);
-  const recipient = params.get("to") || "Friend";
-  const sender = params.get("from") || "A friend";
-  const amount = Number(params.get("amount") || 15);
-  const restaurant = params.get("restaurant") || "a Blackbird restaurant";
-  const location = params.get("location") || "Nearby";
-  const neighborhood = params.get("neighborhood") || "Your neighborhood";
-  const message = params.get("message") || "Lunch is on me today 💛";
-  const image = params.get("image") || "";
+  const locationId = params.get("l") || params.get("locationId") || "";
+  const recipient = params.get("t") || params.get("to") || "Friend";
+  const sender = params.get("f") || params.get("from") || "A friend";
+  const amount = Number(params.get("a") || params.get("amount") || 15);
+  const message = params.get("m") || params.get("message") || "Lunch is on me today 💛";
+  const [venue, setVenue] = useState<Venue>({
+    name: params.get("restaurant") || "a Blackbird restaurant",
+    location: params.get("location") || "Nearby",
+    neighborhood: params.get("neighborhood") || "Your neighborhood",
+    image: params.get("image") || "",
+  });
+
+  useEffect(() => {
+    if (!locationId) return;
+    fetch(`/api/locations/${encodeURIComponent(locationId)}`)
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload) => setVenue(payload.location))
+      .catch(() => undefined);
+  }, [locationId]);
 
   return (
     <main className="claim-page">
       <a className="brand claim-brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
       <div className="claim-glow" />
       <article className={`claim-card ${claimed ? "claimed" : ""}`}>
-        {image && <img className="claim-image" src={image} alt="" />}
+        {venue.image && <img className="claim-image" src={venue.image} alt="" />}
         <div className="claim-body">
           <span className="eyebrow">A LUNCHDROP FOR {recipient.toUpperCase()}</span>
           <h1>{claimed ? "Lunch claimed!" : `${sender} sent you lunch.`}</h1>
           <blockquote>“{message}”</blockquote>
           <div className="claim-details">
             <div><small>YOUR LUNCHDROP</small><strong>${amount}</strong><span>in FLY</span></div>
-            <div><small>TRY IT AT</small><strong>{restaurant}</strong><span>{location} · {neighborhood}</span></div>
+            <div><small>TRY IT AT</small><strong>{venue.name}</strong><span>{venue.location} · {venue.neighborhood}</span></div>
           </div>
           {!claimed ? (
             <button className="claim-button" type="button" onClick={() => setClaimed(true)}>Connect Blackbird to claim <span>→</span></button>
