@@ -106,6 +106,8 @@ This makes it clear which external paths have actually been tested.
 - Test-without-sign-in recipient flow
 - Native share sheet
 - WhatsApp, Telegram, Messages, and copy-link sharing
+- Local QR generation for short claim links, with no third-party QR service
+- Private browser sender history with live Supabase status refresh
 - Draft recovery after refresh
 - Cross-device Created → Opened → Claimed sender status
 - Claim receipt
@@ -175,3 +177,8 @@ The production Blackbird OAuth redirect URI must match the redirect URI register
 ## Runtime NYC
 
 Built for the Blackbird / Flynet track at Runtime NYC.
+
+
+## Abuse protection
+
+LunchDrop now uses a Supabase-backed distributed rate-limit bucket for sensitive public actions such as claim creation, claim opening, status polling, cancellation, recipient restaurant updates, demo claims, and Blackbird OAuth starts. The limiter is enforced server-side and does not expose sender secrets in URLs.
