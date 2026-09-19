@@ -34,6 +34,7 @@ export function ClaimCard() {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [demoComplete, setDemoComplete] = useState(false);
 
   useEffect(() => {
     if (!token) { setError("This claim link is missing its secure token."); setLoading(false); return; }
@@ -82,9 +83,16 @@ export function ClaimCard() {
           {claimed ? (
             <div className="claim-success"><span>✓</span><div><b>{claim.amount} test FLY delivered</b><small>Added to your connected Blackbird member wallet · Reward {rewardId.slice(0, 8)}</small></div></div>
           ) : (
-            <a className="claim-button" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}>Connect Blackbird & claim <span>→</span></a>
+            <>
+              {demoComplete ? (
+                <div className="claim-success"><span>✓</span><div><b>Demo claim complete</b><small>No sign-in needed and no FLY moved. You just tested the recipient claim experience.</small></div></div>
+              ) : (
+                <button className="claim-button" type="button" onClick={() => setDemoComplete(true)}>Test claim without sign-in <span>→</span></button>
+              )}
+              <a className="preview-link" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}>Optional: connect Blackbird to claim test FLY</a>
+            </>
           )}
-          <p className="claim-note">By continuing, you authorize LunchDrop to identify your Blackbird member account and deliver this one-time test FLY reward. The restaurant is a recommendation.</p>
+          <p className="claim-note">{claimed ? "The restaurant is a recommendation. Your test FLY was delivered through Blackbird." : "Blackbird sign-in is optional. Test the claim without an account, or connect only if you want to try the test FLY delivery."}</p>
         </div>
       </article>
       <p className="claim-footer">Live restaurant data by Flynet · Secure Blackbird member claim</p>
