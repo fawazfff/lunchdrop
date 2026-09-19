@@ -6,13 +6,34 @@ import { useEffect, useState } from "react";
 type Venue = { name: string; location: string; neighborhood: string; image: string };
 type Claim = { id: string; locationId: string; recipient: string; sender: string; amount: number; message: string; special?: string };
 
+const oauthErrors: Record<string, string> = {
+  authorization_cancelled: "Blackbird sign-in was cancelled. Your LunchDrop is still waiting.",
+  invalid_oauth_state: "The secure sign-in session expired. Please try connecting again.",
+  invalid_claim: "This claim link is invalid or has expired.",
+  missing_access_token: "Blackbird did not return a member session.",
+  missing_member_id: "Blackbird could not identify this member.",
+  rewards_not_configured: "LunchDrop rewards are not configured yet.",
+  already_claimed: "This LunchDrop has already been claimed by another member.",
+};
+
+function friendlyOAuthError(value: string) {
+  if (oauthErrors[value]) return oauthErrors[value];
+  if (value.startsWith("token_exchange_")) return "Blackbird sign-in could not be completed. Please try once more.";
+  if (value.startsWith("profile_")) return "Your Blackbird profile could not be loaded.";
+  if (value.startsWith("reward_")) return "Blackbird connected, but the test FLY delivery could not be completed.";
+  return "The Blackbird connection could not be completed.";
+}
+
 export function ClaimCard() {
-  const token = useSearchParams().get("t") ?? "";
+  const params = useSearchParams();
+  const token = params.get("t") ?? "";
+  const claimed = params.get("claimed") === "1";
+  const rewardId = params.get("reward") ?? "";
+  const oauthError = params.get("oauth_error") ?? "";
   const [claim, setClaim] = useState<Claim | null>(null);
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [previewed, setPreviewed] = useState(false);
 
   useEffect(() => {
     if (!token) { setError("This claim link is missing its secure token."); setLoading(false); return; }
@@ -45,24 +66,28 @@ export function ClaimCard() {
     <main className="claim-page">
       <a className="brand claim-brand" href="/"><span className="brand-mark">L</span><span>LunchDrop</span></a>
       <div className="claim-glow" />
-      <article className={`claim-card ${previewed ? "claimed" : ""}`}>
+      <article className={`claim-card ${claimed ? "claimed" : ""}`}>
         {venue.image ? <img className="claim-image" src={venue.image} alt={`${venue.name} restaurant`} /> : null}
         <div className="claim-body">
-          <div className="claim-mode"><span>TEST MODE</span><small>Signed claim verified</small></div>
+          <div className="claim-mode"><span>TEST FLY</span><small>Signed claim verified</small></div>
           <span className="eyebrow">A LUNCHDROP FOR {claim.recipient.toUpperCase()}</span>
-          <h1>{claim.sender} sent you lunch.</h1>
+          <h1>{claimed ? "Lunch claimed!" : `${claim.sender} sent you lunch.`}</h1>
           <blockquote>“{claim.message}”</blockquote>
           <div className="claim-details">
             <div><small>YOUR LUNCHDROP</small><strong>{claim.amount} FLY</strong><span>test gift amount</span></div>
             <div><small>RECOMMENDED PLACE</small><strong>{venue.name}</strong><span>{venue.location} · {venue.neighborhood}</span></div>
           </div>
           {claim.special ? <p className="claim-special"><b>Try this:</b> {claim.special}</p> : null}
-          {!previewed ? <button className="claim-button" type="button" onClick={() => setPreviewed(true)}>Preview claim confirmation <span>→</span></button> :
-            <div className="claim-success"><span>✓</span><div><b>Secure claim flow verified</b><small>No FLY moved. Blackbird wallet delivery activates after Flynet approval.</small></div></div>}
-          <p className="claim-note">The restaurant is a recommendation. Delivered FLY can be used at participating Blackbird locations.</p>
+          {oauthError ? <div className="claim-warning"><b>Claim not completed</b><span>{friendlyOAuthError(oauthError)}</span></div> : null}
+          {claimed ? (
+            <div className="claim-success"><span>✓</span><div><b>{claim.amount} test FLY delivered</b><small>Added to your connected Blackbird member wallet · Reward {rewardId.slice(0, 8)}</small></div></div>
+          ) : (
+            <a className="claim-button" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}>Connect Blackbird & claim <span>→</span></a>
+          )}
+          <p className="claim-note">By continuing, you authorize LunchDrop to identify your Blackbird member account and deliver this one-time test FLY reward. The restaurant is a recommendation.</p>
         </div>
       </article>
-      <p className="claim-footer">Live restaurant data by Flynet · Secure claim token verified server-side</p>
+      <p className="claim-footer">Live restaurant data by Flynet · Secure Blackbird member claim</p>
     </main>
   );
 }
