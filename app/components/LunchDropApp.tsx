@@ -73,8 +73,6 @@ export function LunchDropApp() {
       const params = new URLSearchParams(window.location.search);
       const requestedCity = params.get("city");
       const requestedLocation = params.get("location");
-      if (requestedCity) setCity(requestedCity);
-      if (requestedLocation) setRequestedLocationId(requestedLocation);
 
       const saved = window.localStorage.getItem("lunchdrop-draft-v1");
       if (saved) {
@@ -89,6 +87,9 @@ export function LunchDropApp() {
         if (typeof draft.amount === "number") setAmount(Math.min(100, Math.max(1, draft.amount)));
         if ([1, 3, 7].includes(Number(draft.expiryDays))) setExpiryDays(Number(draft.expiryDays));
       }
+
+      if (requestedCity) setCity(requestedCity);
+      if (requestedLocation) setRequestedLocationId(requestedLocation);
 
       const recent = window.localStorage.getItem("lunchdrop-last-created");
       if (recent) {
