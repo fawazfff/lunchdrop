@@ -30,7 +30,12 @@ export function BlackbirdConnect({ compact = false }: { compact?: boolean }) {
   }
 
   if (loading) {
-    return <span className={`blackbird-connect-control ${compact ? "compact" : ""} loading`}><span className="blackbird-mini-mark">B</span> Checking Blackbird…</span>;
+    return (
+      <span className={`blackbird-connect-control ${compact ? "compact" : ""} loading`}>
+        <span className="blackbird-mini-mark">B</span>
+        <span><b>Connect Blackbird</b><small>Checking status…</small></span>
+      </span>
+    );
   }
 
   if (connected) {
