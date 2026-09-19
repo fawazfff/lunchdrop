@@ -37,7 +37,7 @@ export function BlackbirdConnect({ compact = false }: { compact?: boolean }) {
     return (
       <span className={`blackbird-connect-control connected ${compact ? "compact" : ""}`}>
         <span className="blackbird-mini-mark">B</span>
-        <span><b>Blackbird wallet connected</b>{memberId ? <small>Member …{memberId.slice(-6)}</small> : null}</span>
+        <span><b>Blackbird connected</b>{memberId ? <small>Member …{memberId.slice(-6)}</small> : null}</span>
         <button type="button" onClick={disconnect}>Disconnect</button>
       </span>
     );
@@ -46,7 +46,7 @@ export function BlackbirdConnect({ compact = false }: { compact?: boolean }) {
   return (
     <a className={`blackbird-connect-control ${compact ? "compact" : ""}`} href={`/api/auth/blackbird/start?return=${encodeURIComponent(returnPath)}`}>
       <span className="blackbird-mini-mark">B</span>
-      <span><b>Connect Blackbird wallet</b><small>Optional member sign-in</small></span>
+      <span><b>Connect Blackbird</b><small>Optional member sign-in</small></span>
       <strong>→</strong>
     </a>
   );
