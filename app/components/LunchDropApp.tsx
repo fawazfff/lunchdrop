@@ -107,8 +107,9 @@ export function LunchDropApp() {
       message,
       amount,
       expiryDays,
+      selectedSpecialId: selectedSpecial?.id ?? "",
     }));
-  }, [amount, city, draftReady, expiryDays, message, recipient, selected?.locationId, sender]);
+  }, [amount, city, draftReady, expiryDays, message, recipient, selected?.locationId, selectedSpecial?.id, sender]);
 
   useEffect(() => {
     let active = true;
@@ -147,7 +148,17 @@ export function LunchDropApp() {
     setSelectedSpecial(null);
     fetch(`/api/restaurants/${selected.id}/specials`)
       .then((response) => response.json())
-      .then((payload) => { if (active) setSpecials(payload.specials ?? []); })
+      .then((payload) => {
+        if (!active) return;
+        const nextSpecials = payload.specials ?? [];
+        setSpecials(nextSpecials);
+        try {
+          const draft = JSON.parse(window.localStorage.getItem("lunchdrop-draft-v1") ?? "{}") as { selectedSpecialId?: string };
+          if (draft.selectedSpecialId) {
+            setSelectedSpecial(nextSpecials.find((special: Special) => special.id === draft.selectedSpecialId) ?? null);
+          }
+        } catch {}
+      })
       .catch(() => { if (active) setSpecials([]); });
     return () => { active = false; };
   }, [selected]);
@@ -418,6 +429,7 @@ export function LunchDropApp() {
                 <button className="share-button" type="button" onClick={() => void copyLink()}>{copied ? "Copied!" : "Copy link"}</button>
                 <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://wa.me/?text=${encodeURIComponent(`Lunch is on me. Open your LunchDrop: ${claimLink}`)}`}>WhatsApp</a>
                 <a className="share-button" target="_blank" rel="noreferrer" onClick={markShared} href={`https://t.me/share/url?url=${encodeURIComponent(claimLink)}&text=${encodeURIComponent("A LunchDrop is waiting for you.")}`}>Telegram</a>
+                <a className="share-button" onClick={markShared} href={`sms:?&body=${encodeURIComponent(`Lunch is on me. Open your LunchDrop: ${claimLink}`)}`}>Messages</a>
               </div>
               <div className="ready-actions">
                 <a className="preview-link" href={claimLink} target="_blank" rel="noreferrer">Preview what {recipient} sees →</a>
