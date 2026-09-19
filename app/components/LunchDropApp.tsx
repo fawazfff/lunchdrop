@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LunchBuddy } from "./LunchBuddy";
 import { BlackbirdIntegration } from "./BlackbirdIntegration";
-import { BlackbirdConnect } from "./BlackbirdConnect";
+import { SiteNav } from "./SiteNav";
 
 type Restaurant = {
   id: string;
@@ -66,9 +66,16 @@ export function LunchDropApp() {
   const [expiryDays, setExpiryDays] = useState(7);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [draftReady, setDraftReady] = useState(false);
+  const [requestedLocationId, setRequestedLocationId] = useState("");
 
   useEffect(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const requestedCity = params.get("city");
+      const requestedLocation = params.get("location");
+      if (requestedCity) setCity(requestedCity);
+      if (requestedLocation) setRequestedLocationId(requestedLocation);
+
       const saved = window.localStorage.getItem("lunchdrop-draft-v1");
       if (saved) {
         const draft = JSON.parse(saved) as {
@@ -140,8 +147,9 @@ export function LunchDropApp() {
             const draft = JSON.parse(window.localStorage.getItem("lunchdrop-draft-v1") ?? "{}") as { selectedLocationId?: string };
             preferredLocationId = draft.selectedLocationId ?? "";
           } catch {}
+          const targetLocationId = requestedLocationId || preferredLocationId;
           setSelected(
-            payload.restaurants.find((restaurant: Restaurant) => restaurant.locationId === preferredLocationId && restaurant.paymentsEnabled)
+            payload.restaurants.find((restaurant: Restaurant) => restaurant.locationId === targetLocationId && restaurant.paymentsEnabled)
               ?? payload.restaurants.find((restaurant: Restaurant) => restaurant.paymentsEnabled)
               ?? null,
           );
@@ -152,7 +160,7 @@ export function LunchDropApp() {
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [city, reloadNonce]);
+  }, [city, reloadNonce, requestedLocationId]);
 
   useEffect(() => {
     if (!selected) return;
@@ -359,31 +367,13 @@ export function LunchDropApp() {
 
   return (
     <main>
-      <nav className="nav shell">
-        <a className="brand" href="/" aria-label="LunchDrop home"><span className="brand-mark">L</span><span>LunchDrop</span></a>
-        <div className="nav-links"><a href="/how-it-works">How it works</a><a href="#blackbird-integration">Blackbird</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
-        <div className="nav-actions"><BlackbirdConnect compact /><span className="live-pill"><i /> Live Flynet data</span><a className="ghost-button" href="/">Home</a></div>
-      </nav>
+      <SiteNav current="send" />
 
-      <section className="hero shell" id="top">
-        <div className="hero-copy">
-          <span className="eyebrow">A LITTLE FOOD. A LOT OF LOVE.</span>
-          <h1>Send lunch.<br /><em>Make their day.</em></h1>
-          <p>Pick a real Blackbird restaurant, add a note, and send a LunchDrop they can open in seconds.</p>
-          <a className="primary-button" href="#build-drop">Send a LunchDrop <span>→</span></a>
-          <div className="trust-row"><span>Powered by</span><strong>BLACKBIRD</strong><b>×</b><strong>FLYNET</strong></div>
-        </div>
-
-        <div className="hero-stage" aria-label="Preview of a LunchDrop gift">
-          <div className="sun-disc" /><div className="orbit orbit-one" /><div className="orbit orbit-two" />
-          <article className="gift-card">
-            <div className="gift-topline"><span>LunchDrop</span><span className="gift-stamp">JUST FOR YOU</span></div>
-            <div className="gift-amount"><small>FLY</small>15</div>
-            <p>for something delicious</p><div className="gift-divider" />
-            <div className="gift-place"><span>🍽</span><div><b>Pick their favorite</b><small>Real restaurants via Flynet</small></div></div>
-          </article>
-          <span className="float-chip chip-one">Lunch secured ✓</span><span className="float-chip chip-two">Sent with FLY</span>
-        </div>
+      <section className="send-intro shell">
+        <span className="eyebrow">CREATE A LUNCHDROP</span>
+        <h1>Pick the lunch. Add the note. Send the link.</h1>
+        <p>Everything below is the real sender flow. Restaurant choices come from Flynet and new gifts use short Supabase-backed claim links.</p>
+        <div className="send-intro-links"><a href="/live">Browse live Flynet places →</a><a href="/blackbird">How Blackbird connects →</a></div>
       </section>
 
       <section className="builder-section" id="build-drop">
@@ -403,7 +393,7 @@ export function LunchDropApp() {
           <aside className="integration-proof">
             <span className="live-pill"><i /> LIVE API</span>
             <div><b>Flynet powers every restaurant choice</b><small>Real Blackbird venues, cities, neighborhoods, cuisines, images, payment availability, and live specials.</small></div>
-            <a href="https://docs.flynet.org/api-reference/locations/list" target="_blank" rel="noreferrer">View Flynet endpoint ↗</a>
+            <a href="/live">Open live Flynet explorer →</a>
           </aside>
 
           <div className="builder-grid">
@@ -476,7 +466,7 @@ export function LunchDropApp() {
               <button className="send-button" type="button" disabled={!selected || !sender.trim() || !recipient.trim() || creating} onClick={createDrop}>
                 {creating ? "Securing claim link…" : `Create ${fly(amount)} LunchDrop`} <span>→</span>
               </button>
-              <p className="fine-print">Creates a signed, tamper-resistant test claim. The restaurant is a recommendation, not a lock-in.</p>
+              <p className="fine-print">Creates a short Supabase-backed claim link with cross-device status. The restaurant is a recommendation, not a lock-in.</p>
             </section>
           </div>
 
@@ -522,7 +512,7 @@ export function LunchDropApp() {
 
       <footer className="footer shell">
         <div className="brand"><span className="brand-mark">L</span><span>LunchDrop</span></div>
-        <div className="footer-links"><a href="/how-it-works">How it works</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
+        <div className="footer-links"><a href="/live">Live Flynet</a><a href="/blackbird">Blackbird</a><a href="/how-it-works">How it works</a><a href="/status">Status</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
         <p>Built for Runtime NYC · Powered by Blackbird’s Flynet</p>
       </footer>
     </main>
