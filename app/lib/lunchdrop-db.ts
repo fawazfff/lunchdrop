@@ -141,3 +141,18 @@ export async function cancelLunchDrop(code: string, senderSecret: string) {
     p_sender_secret_hash: senderSecretHash(senderSecret),
   });
 }
+
+
+export async function consumeLunchDropRateLimit(
+  bucket: string,
+  keyHash: string,
+  limit: number,
+  windowSeconds: number,
+) {
+  return rpc<boolean>("consume_lunchdrop_rate_limit", {
+    p_bucket: bucket,
+    p_key_hash: keyHash,
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+  });
+}
