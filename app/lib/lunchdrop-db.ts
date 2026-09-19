@@ -2,53 +2,53 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://tmptcyapmmufkbvadroe.supabase.co";
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.SUPABASE_PUBLISHABLE_KEY ??
+  "sb_publishable_Yd6NumwfYZQEAFCy9iRSQQ_HHZmjhZ5";
 
 export type DbLunchDrop = {
   id: string;
   code: string;
-  location_id: string;
-  recipient_name: string;
-  sender_name: string;
+  locationId: string;
+  recipient: string;
+  sender: string;
   amount: number;
   message: string;
-  special: string | null;
-  chosen_location_id: string | null;
-  status: "created" | "opened" | "demo_claimed" | "connected_claimed" | "cancelled";
-  created_at: string;
-  opened_at: string | null;
-  demo_claimed_at: string | null;
-  connected_claimed_at: string | null;
-  expires_at: string;
-  reward_id: string | null;
-  sender_secret_hash: string;
+  special?: string;
+  chosenLocationId?: string;
+  status: "created" | "opened" | "demo_claimed" | "connected_claimed" | "cancelled" | "expired";
+  createdAt: number;
+  expiresAt: number;
+  openedAt?: string;
+  demoClaimedAt?: string;
+  connectedClaimedAt?: string;
+  rewardId?: string;
 };
 
 export function lunchdropDbEnabled() {
-  return Boolean(SUPABASE_URL && SERVICE_ROLE_KEY);
+  return Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 }
 
-function headers(extra?: HeadersInit) {
+function apiHeaders() {
   return {
-    apikey: SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+    Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
     "Content-Type": "application/json",
-    ...extra,
   };
 }
 
-async function rest<T>(path: string, init?: RequestInit): Promise<T> {
+async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
   if (!lunchdropDbEnabled()) throw new Error("LunchDrop database is not configured");
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: headers(init?.headers),
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: apiHeaders(),
+    body: JSON.stringify(body),
     cache: "no-store",
   });
   if (!response.ok) {
     const message = await response.text().catch(() => "");
     throw new Error(`Supabase ${response.status}: ${message.slice(0, 220)}`);
   }
-  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -66,7 +66,7 @@ export function newClaimCode(length = 7) {
   return Array.from(bytes, (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join("");
 }
 
-export async function insertLunchDrop(input: {
+export async function createLunchDrop(input: {
   code: string;
   locationId: string;
   recipient: string;
@@ -75,62 +75,69 @@ export async function insertLunchDrop(input: {
   message: string;
   special?: string;
   expiresAt: Date;
-  senderSecretHash: string;
+  senderSecret: string;
 }) {
-  const rows = await rest<DbLunchDrop[]>("lunchdrops", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({
-      code: input.code,
-      location_id: input.locationId,
-      recipient_name: input.recipient,
-      sender_name: input.sender,
-      amount: input.amount,
-      message: input.message,
-      special: input.special ?? null,
-      expires_at: input.expiresAt.toISOString(),
-      sender_secret_hash: input.senderSecretHash,
-    }),
-  });
-  return rows[0];
-}
-
-export async function getLunchDropByCode(code: string) {
-  const rows = await rest<DbLunchDrop[]>(
-    `lunchdrops?code=eq.${encodeURIComponent(code)}&select=*`,
-  );
-  return rows[0] ?? null;
-}
-
-export async function updateLunchDropByCode(code: string, patch: Record<string, unknown>) {
-  const rows = await rest<DbLunchDrop[]>(
-    `lunchdrops?code=eq.${encodeURIComponent(code)}`,
+  return rpc<{ id: string; code: string; status: string; created_at: string; expires_at: string }>(
+    "create_lunchdrop",
     {
-      method: "PATCH",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify(patch),
+      p_code: input.code,
+      p_location_id: input.locationId,
+      p_recipient_name: input.recipient,
+      p_sender_name: input.sender,
+      p_amount: input.amount,
+      p_message: input.message,
+      p_special: input.special ?? "",
+      p_expires_at: input.expiresAt.toISOString(),
+      p_sender_secret_hash: senderSecretHash(input.senderSecret),
     },
   );
-  return rows[0] ?? null;
 }
 
-export async function appendLunchDropEvent(
-  lunchdropId: string,
-  eventType: string,
-  eventMeta: Record<string, unknown> = {},
-) {
-  await rest("lunchdrop_events", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      lunchdrop_id: lunchdropId,
-      event_type: eventType,
-      event_meta: eventMeta,
-    }),
+export async function openLunchDrop(code: string) {
+  return rpc<DbLunchDrop | null>("open_lunchdrop", { p_code: code.toUpperCase() });
+}
+
+export async function saveLunchDropChoice(code: string, locationId: string) {
+  return rpc<{ code: string; chosenLocationId: string } | null>("set_lunchdrop_choice", {
+    p_code: code.toUpperCase(),
+    p_location_id: locationId,
   });
 }
 
-export async function verifySenderKey(drop: DbLunchDrop, key: string) {
-  if (!key) return false;
-  return senderSecretHash(key) === drop.sender_secret_hash;
+export async function demoClaimLunchDrop(code: string) {
+  return rpc<{ code: string; status: string; demoClaimedAt: string } | null>("demo_claim_lunchdrop", {
+    p_code: code.toUpperCase(),
+  });
+}
+
+export async function connectedClaimLunchDrop(code: string, rewardId: string) {
+  return rpc<{ code: string; status: string; connectedClaimedAt: string; rewardId: string } | null>(
+    "connected_claim_lunchdrop",
+    { p_code: code.toUpperCase(), p_reward_id: rewardId },
+  );
+}
+
+export async function senderLunchDropStatus(code: string, senderSecret: string) {
+  return rpc<{
+    code: string;
+    status: string;
+    createdAt: string;
+    openedAt?: string;
+    demoClaimedAt?: string;
+    connectedClaimedAt?: string;
+    cancelledAt?: string;
+    expiresAt: string;
+    chosenLocationId?: string;
+    rewardId?: string;
+  } | null>("sender_lunchdrop_status", {
+    p_code: code.toUpperCase(),
+    p_sender_secret_hash: senderSecretHash(senderSecret),
+  });
+}
+
+export async function cancelLunchDrop(code: string, senderSecret: string) {
+  return rpc<{ code: string; status: string; cancelledAt: string } | null>("cancel_lunchdrop", {
+    p_code: code.toUpperCase(),
+    p_sender_secret_hash: senderSecretHash(senderSecret),
+  });
 }
