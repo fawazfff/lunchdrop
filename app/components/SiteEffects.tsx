@@ -6,6 +6,7 @@ type SoundKind = "click" | "select" | "action" | "success";
 
 export function SiteEffects() {
   const [soundOn, setSoundOn] = useState(true);
+  const [delight, setDelight] = useState("");
   const audioRef = useRef<AudioContext | null>(null);
   const enabledRef = useRef(true);
 
@@ -14,6 +15,8 @@ export function SiteEffects() {
     const enabled = saved !== "off";
     setSoundOn(enabled);
     enabledRef.current = enabled;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const getAudio = () => {
       if (!audioRef.current) audioRef.current = new AudioContext();
@@ -41,21 +44,21 @@ export function SiteEffects() {
     const play = (kind: SoundKind) => {
       if (!enabledRef.current) return;
       if (kind === "select") {
-        tone(520, 0.055, 0.025);
+        tone(520, 0.055, 0.022);
       } else if (kind === "action") {
-        tone(390, 0.055, 0.03);
-        tone(620, 0.09, 0.026, 0.045);
+        tone(390, 0.055, 0.026);
+        tone(620, 0.09, 0.022, 0.045);
       } else if (kind === "success") {
-        tone(523, 0.07, 0.025);
-        tone(659, 0.08, 0.025, 0.07);
-        tone(784, 0.12, 0.025, 0.14);
+        tone(523, 0.07, 0.023);
+        tone(659, 0.08, 0.023, 0.07);
+        tone(784, 0.12, 0.023, 0.14);
       } else {
-        tone(430, 0.04, 0.018);
+        tone(430, 0.04, 0.015);
       }
     };
 
     const addRipple = (event: PointerEvent, target: Element) => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (reducedMotion.matches) return;
       const ripple = document.createElement("span");
       ripple.className = "tap-ripple";
       ripple.style.left = `${event.clientX}px`;
@@ -85,10 +88,37 @@ export function SiteEffects() {
       }
     };
 
-    const revealTargets = Array.from(document.querySelectorAll(
-      ".simple-steps article, .flynet-proof, .home-cta, .integration-proof, .panel, .drop-ready, .info-grid article, .about-stack article, .faq-list details, .claim-receipt, .recipient-choice",
-    ));
-    revealTargets.forEach((element) => element.classList.add("motion-ready"));
+    const revealSelector = [
+      ".section-heading",
+      ".simple-steps article",
+      ".flynet-proof",
+      ".truth-strip",
+      ".home-cta",
+      ".integration-proof",
+      ".panel",
+      ".step-row",
+      ".drop-ready",
+      ".info-grid article",
+      ".about-stack article",
+      ".faq-list details",
+      ".truth-card",
+      ".claim-receipt",
+      ".recipient-choice",
+      ".sender-status",
+    ].join(",");
+
+    const prepareReveals = (root: ParentNode = document) => {
+      const targets = Array.from(root.querySelectorAll(revealSelector));
+      targets.forEach((element, index) => {
+        if (element.classList.contains("motion-ready")) return;
+        element.classList.add("motion-ready");
+        const variant = index % 4;
+        if (variant === 1) element.classList.add("motion-from-left");
+        if (variant === 2) element.classList.add("motion-from-right");
+        if (variant === 3) element.classList.add("motion-scale");
+        observer.observe(element);
+      });
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -99,13 +129,15 @@ export function SiteEffects() {
           }
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -30px 0px" },
+      { threshold: 0.1, rootMargin: "0px 0px -36px 0px" },
     );
-    revealTargets.forEach((element) => observer.observe(element));
+
+    prepareReveals();
+    requestAnimationFrame(() => document.body.classList.add("motion-booted"));
 
     const onPointerMove = (event: PointerEvent) => {
       const stage = document.querySelector<HTMLElement>(".hero-stage");
-      if (!stage || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (!stage || reducedMotion.matches) return;
       const rect = stage.getBoundingClientRect();
       if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
       const x = (event.clientX - rect.left) / rect.width - 0.5;
@@ -115,19 +147,59 @@ export function SiteEffects() {
     };
 
     let successWasVisible = Boolean(document.querySelector(".claim-success, .drop-ready"));
-    const mutationObserver = new MutationObserver(() => {
+    const mutationObserver = new MutationObserver((records) => {
       const successIsVisible = Boolean(document.querySelector(".claim-success, .drop-ready"));
       if (successIsVisible && !successWasVisible) play("success");
       successWasVisible = successIsVisible;
+      for (const record of records) {
+        for (const node of Array.from(record.addedNodes)) {
+          if (node instanceof Element) prepareReveals(node);
+        }
+      }
     });
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
+    const onInternalNavigation = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest("a");
+      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const raw = anchor.getAttribute("href");
+      if (!raw || raw.startsWith("#") || raw.startsWith("mailto:") || raw.startsWith("tel:") || raw.startsWith("/api/")) return;
+
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      if (reducedMotion.matches) return;
+
+      event.preventDefault();
+      document.body.classList.add("page-leaving");
+      window.setTimeout(() => { window.location.href = url.href; }, 260);
+    };
+
+    let secret = "";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      secret = (secret + event.key.toLowerCase()).slice(-5);
+      if (secret === "lunch") {
+        play("success");
+        document.body.classList.add("lunchie-party");
+        setDelight("Lunchie says: secret lunch mode unlocked ✦");
+        window.setTimeout(() => document.body.classList.remove("lunchie-party"), 4200);
+        window.setTimeout(() => setDelight(""), 4300);
+      }
+    };
+
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("pointermove", onPointerMove, { passive: true });
+    document.addEventListener("click", onInternalNavigation);
+    document.addEventListener("keydown", onKeyDown);
 
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("click", onInternalNavigation);
+      document.removeEventListener("keydown", onKeyDown);
       mutationObserver.disconnect();
       observer.disconnect();
       void audioRef.current?.close();
@@ -143,15 +215,19 @@ export function SiteEffects() {
   }
 
   return (
-    <button
-      type="button"
-      className={`sound-toggle ${soundOn ? "is-on" : ""}`}
-      onClick={toggleSound}
-      aria-label={soundOn ? "Mute LunchDrop sounds" : "Turn on LunchDrop sounds"}
-      title={soundOn ? "Sound on" : "Sound off"}
-    >
-      <span aria-hidden="true">{soundOn ? "♪" : "×"}</span>
-      <small>{soundOn ? "Sound on" : "Sound off"}</small>
-    </button>
+    <>
+      <div className="page-curtain" aria-hidden="true"><span>LunchDrop</span></div>
+      {delight ? <div className="delight-toast" role="status">{delight}</div> : null}
+      <button
+        type="button"
+        className={`sound-toggle ${soundOn ? "is-on" : ""}`}
+        onClick={toggleSound}
+        aria-label={soundOn ? "Mute LunchDrop sounds" : "Turn on LunchDrop sounds"}
+        title={soundOn ? "Sound on" : "Sound off"}
+      >
+        <span aria-hidden="true">{soundOn ? "♪" : "×"}</span>
+        <small>{soundOn ? "Sound on" : "Sound off"}</small>
+      </button>
+    </>
   );
 }
