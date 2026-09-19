@@ -3,7 +3,7 @@ import { senderLunchDropStatus } from "../../../../../lib/lunchdrop-db";
 
 const CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6,12}$/;
 
-export async function GET(
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
@@ -12,7 +12,8 @@ export async function GET(
     const normalized = code.toUpperCase();
     if (!CODE.test(normalized)) return NextResponse.json({ error: "Invalid LunchDrop code" }, { status: 400 });
 
-    const senderKey = new URL(request.url).searchParams.get("key") ?? "";
+    const body = await request.json();
+    const senderKey = String(body.senderKey ?? "");
     if (senderKey.length < 20) return NextResponse.json({ error: "Missing sender key" }, { status: 401 });
 
     const status = await senderLunchDropStatus(normalized, senderKey);
