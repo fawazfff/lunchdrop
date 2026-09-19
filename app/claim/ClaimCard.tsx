@@ -52,9 +52,9 @@ function friendlyOAuthError(value: string) {
   return "The Blackbird connection could not be completed.";
 }
 
-export function ClaimCard() {
+export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
   const params = useSearchParams();
-  const token = params.get("t") ?? "";
+  const token = tokenOverride ?? params.get("t") ?? "";
   const claimed = params.get("claimed") === "1";
   const rewardId = params.get("reward") ?? "";
   const oauthError = params.get("oauth_error") ?? "";
@@ -271,7 +271,7 @@ export function ClaimCard() {
               <button className="claim-button" type="button" onClick={finishDemo}>Test claim without sign-in <span>→</span></button>
               <div className="optional-blackbird">
                 <span>OR</span>
-                <a href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}>Connect Blackbird to claim test FLY →</a>
+                <a className="blackbird-connect-link" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}><span className="blackbird-mini-mark">B</span> Connect Blackbird to claim test FLY →</a>
                 <small>Optional. Use this only if you want to test the connected Blackbird member flow.</small>
               </div>
             </>
