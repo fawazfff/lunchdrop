@@ -1,5 +1,6 @@
 import { LunchBuddy } from "./LunchBuddy";
 import { BlackbirdIntegration } from "./BlackbirdIntegration";
+import { BlackbirdConnect } from "./BlackbirdConnect";
 
 export function HomePage() {
   return (
@@ -7,7 +8,7 @@ export function HomePage() {
       <nav className="nav shell">
         <a className="brand" href="/" aria-label="LunchDrop home"><span className="brand-mark">L</span><span>LunchDrop</span></a>
         <div className="nav-links"><a href="/how-it-works">How it works</a><a href="#blackbird-integration">Blackbird</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
-        <div className="nav-actions"><a className="nav-blackbird" href="#blackbird-integration">Blackbird OAuth</a><a className="ghost-button" href="/send">Send lunch</a></div>
+        <div className="nav-actions"><BlackbirdConnect compact /><a className="ghost-button" href="/send">Send lunch</a></div>
       </nav>
 
       <section className="hero shell" id="top">
@@ -15,7 +16,7 @@ export function HomePage() {
           <span className="eyebrow">A SMALL GIFT. A REAL MOMENT.</span>
           <h1>Send someone lunch.<br /><em>Make their day.</em></h1>
           <p>Choose a real Blackbird spot, add a note, and send a LunchDrop they can open in seconds.</p>
-          <a className="primary-button" href="/send">Send a LunchDrop <span>→</span></a>
+          <div className="hero-action-row"><a className="primary-button" href="/send">Send a LunchDrop <span>→</span></a><BlackbirdConnect /></div>
           <div className="trust-row"><span>Powered by</span><strong>BLACKBIRD</strong><b>×</b><strong>FLYNET</strong></div>
           <div className="hero-buddy"><LunchBuddy compact message="I know a good lunch when I see one." /></div>
         </div>
