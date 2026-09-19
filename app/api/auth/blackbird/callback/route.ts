@@ -8,8 +8,7 @@ const AUTH_BASE = process.env.FLYNET_AUTH_BASE ?? "https://api.blackbird.xyz/oau
 const API_BASE = process.env.FLYNET_API_BASE ?? "https://api.blackbird.xyz/flynet/v1";
 
 function claimRedirect(request: Request, token: string, values: Record<string, string>) {
-  const url = new URL("/claim", request.url);
-  if (token) url.searchParams.set("t", token);
+  const url = token ? new URL(`/c/${token}`, request.url) : new URL("/claim", request.url);
   for (const [key, value] of Object.entries(values)) url.searchParams.set(key, value);
   const response = NextResponse.redirect(url);
   response.cookies.delete("ld_oauth_state");
