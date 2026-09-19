@@ -7,7 +7,7 @@ type FlynetLocation = {
     name?: string;
     asset?: { preview_1x?: string; web_2x?: string };
   };
-  neighborhood?: { name?: string };
+  neighborhood?: { name?: string; region?: string };
 };
 
 export async function GET(
@@ -34,6 +34,7 @@ export async function GET(
       name: location.restaurant?.name ?? "Blackbird restaurant",
       location: location.name,
       neighborhood: location.neighborhood?.name ?? "Nearby",
+      region: location.neighborhood?.region ?? "",
       image: location.restaurant?.asset?.web_2x ?? location.restaurant?.asset?.preview_1x ?? "",
     },
     source: "flynet",
