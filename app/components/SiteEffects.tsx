@@ -81,8 +81,10 @@ export function SiteEffects() {
 
       if (element.matches(".restaurant-card, .alternative-card, .special-list button, .amount-grid button")) {
         play("select");
-      } else if (element.matches(".primary-button, .send-button, .claim-button, .link-box button")) {
+        if ("vibrate" in navigator) navigator.vibrate(7);
+      } else if (element.matches(".primary-button, .send-button, .claim-button, .link-box button, .share-button")) {
         play("action");
+        if ("vibrate" in navigator) navigator.vibrate(10);
       } else {
         play("click");
       }
@@ -149,7 +151,10 @@ export function SiteEffects() {
     let successWasVisible = Boolean(document.querySelector(".claim-success, .drop-ready"));
     const mutationObserver = new MutationObserver((records) => {
       const successIsVisible = Boolean(document.querySelector(".claim-success, .drop-ready"));
-      if (successIsVisible && !successWasVisible) play("success");
+      if (successIsVisible && !successWasVisible) {
+        play("success");
+        if ("vibrate" in navigator) navigator.vibrate([18, 35, 22]);
+      }
       successWasVisible = successIsVisible;
       for (const record of records) {
         for (const node of Array.from(record.addedNodes)) {
@@ -190,16 +195,26 @@ export function SiteEffects() {
       }
     };
 
+    const onToast = (event: Event) => {
+      const custom = event as CustomEvent<string>;
+      const message = typeof custom.detail === "string" ? custom.detail : "";
+      if (!message) return;
+      setDelight(message);
+      window.setTimeout(() => setDelight(""), 2400);
+    };
+
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("pointermove", onPointerMove, { passive: true });
     document.addEventListener("click", onInternalNavigation);
     document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("lunchdrop:toast", onToast as EventListener);
 
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("click", onInternalNavigation);
       document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("lunchdrop:toast", onToast as EventListener);
       mutationObserver.disconnect();
       observer.disconnect();
       void audioRef.current?.close();
