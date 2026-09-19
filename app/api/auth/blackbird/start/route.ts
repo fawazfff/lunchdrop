@@ -1,10 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { verifyClaim } from "../../../../lib/claim-token";
+import { openLunchDrop } from "../../../../lib/lunchdrop-db";
 
 const CLIENT_ID = process.env.FLYNET_CLIENT_ID ?? "19a0b552-ff8e-43de-b47a-bbc32ee0cd8a";
 const REDIRECT_URI = process.env.REDIRECT_URI || "https://lunchdrop.vercel.app/api/auth/blackbird/callback";
 const AUTH_BASE = process.env.FLYNET_AUTH_BASE ?? "https://api.blackbird.xyz/oauth";
+const CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6,12}$/;
 
 function safeReturnPath(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
@@ -14,9 +16,22 @@ function safeReturnPath(value: string | null) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("t") ?? "";
+  const code = (url.searchParams.get("c") ?? "").toUpperCase();
   const returnPath = safeReturnPath(url.searchParams.get("return"));
 
-  if (token) {
+  if (code) {
+    if (!CODE.test(code)) {
+      return NextResponse.redirect(new URL("/claim?oauth_error=invalid_claim", request.url));
+    }
+    try {
+      const claim = await openLunchDrop(code);
+      if (!claim || claim.status === "cancelled" || claim.status === "expired") {
+        return NextResponse.redirect(new URL(`/c/${code}?oauth_error=invalid_claim`, request.url));
+      }
+    } catch {
+      return NextResponse.redirect(new URL(`/c/${code}?oauth_error=invalid_claim`, request.url));
+    }
+  } else if (token) {
     try {
       verifyClaim(token);
     } catch {
@@ -42,9 +57,14 @@ export async function GET(request: Request) {
   const options = { httpOnly: true, secure: true, sameSite: "lax" as const, maxAge: 10 * 60, path: "/api/auth/blackbird" };
   response.cookies.set("ld_oauth_state", state, options);
   response.cookies.set("ld_oauth_verifier", verifier, options);
-  response.cookies.set("ld_oauth_mode", token ? "claim" : "connect", options);
+  response.cookies.set("ld_oauth_mode", token || code ? "claim" : "connect", options);
   response.cookies.set("ld_oauth_return", returnPath, options);
+
   if (token) response.cookies.set("ld_claim", token, options);
   else response.cookies.delete("ld_claim");
+
+  if (code) response.cookies.set("ld_claim_code", code, options);
+  else response.cookies.delete("ld_claim_code");
+
   return response;
 }
