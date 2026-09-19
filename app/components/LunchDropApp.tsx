@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LunchBuddy } from "./LunchBuddy";
+import { BlackbirdIntegration } from "./BlackbirdIntegration";
 
 type Restaurant = {
   id: string;
@@ -221,6 +222,8 @@ export function LunchDropApp() {
             <div className="step-line" />
             <div className="step-label"><span>3</span><div><b>Send the link</b><small>No account required</small></div></div>
           </div>
+
+          <BlackbirdIntegration compact />
 
           <aside className="integration-proof">
             <span className="live-pill"><i /> LIVE API</span>
