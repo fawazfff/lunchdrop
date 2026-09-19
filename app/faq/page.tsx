@@ -11,7 +11,7 @@ const faqs = [
 ];
 
 export default function FaqPage() {
-  return <InfoPage eyebrow="STRAIGHT ANSWERS" title="LunchDrop FAQ" intro="What is live, what comes from Flynet, and what remains in test mode.">
+  return <InfoPage eyebrow="STRAIGHT ANSWERS" title="LunchDrop FAQ" intro="What is live, what comes from Flynet, and what remains in test mode." current="faq">
     <div className="faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div>
   </InfoPage>;
 }
