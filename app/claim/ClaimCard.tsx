@@ -265,19 +265,29 @@ export function ClaimCard({ tokenOverride }: { tokenOverride?: string }) {
                   <div><small>TIME</small><strong>{receiptTime || "Just now"}</strong></div>
                 </div>
               </section>
+              {!claimed ? (
+                <div className="reward-upgrade">
+                  <div>
+                    <span className="eyebrow">OPTIONAL REWARD</span>
+                    <h3>Want the {claim.amount} test FLY too?</h3>
+                    <p>Your demo is already complete. Connect Blackbird only if you want to try receiving the test FLY reward in the connected member flow.</p>
+                  </div>
+                  <a className="blackbird-reward-button" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}><span className="blackbird-mini-mark">B</span> Connect Blackbird to receive test FLY <span>→</span></a>
+                </div>
+              ) : null}
             </>
           ) : (
             <>
               <button className="claim-button" type="button" onClick={finishDemo}>Test claim without sign-in <span>→</span></button>
               <div className="optional-blackbird">
-                <span>OR</span>
-                <a className="blackbird-connect-link" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}><span className="blackbird-mini-mark">B</span> Connect Blackbird to claim test FLY →</a>
-                <small>Optional. Use this only if you want to test the connected Blackbird member flow.</small>
+                <span>OPTIONAL</span>
+                <a className="blackbird-connect-link" href={`/api/auth/blackbird/start?t=${encodeURIComponent(token)}`}><span className="blackbird-mini-mark">B</span> Connect Blackbird to receive {claim.amount} test FLY →</a>
+                <small>You do not need Blackbird to test LunchDrop. Connect only if you want to try the reward delivery flow.</small>
               </div>
             </>
           )}
 
-          <p className="claim-note">{claimed ? "Your connected test FLY claim is complete." : demoComplete ? "You tested the full recipient experience without creating an account." : "Blackbird sign-in is optional. You can test the gift without an account."}</p>
+          <p className="claim-note">{claimed ? "Your connected test FLY reward is complete." : demoComplete ? "Your demo claim is complete. Blackbird remains optional if you want to try the test FLY reward." : "Blackbird is optional. Test the gift without an account, or connect to try receiving the test FLY reward."}</p>
         </div>
       </article>
 
