@@ -1,3 +1,5 @@
+import { LunchBuddy } from "./LunchBuddy";
+
 export function HomePage() {
   return (
     <main>
@@ -14,6 +16,7 @@ export function HomePage() {
           <p>Choose a real Blackbird spot, add a note, and send a LunchDrop they can open in seconds.</p>
           <a className="primary-button" href="/send">Send a LunchDrop <span>→</span></a>
           <div className="trust-row"><span>Powered by</span><strong>BLACKBIRD</strong><b>×</b><strong>FLYNET</strong></div>
+          <div className="hero-buddy"><LunchBuddy compact message="I know a good lunch when I see one." /></div>
         </div>
         <div className="hero-stage" aria-label="LunchDrop gift preview">
           <div className="sun-disc" /><div className="orbit orbit-one" /><div className="orbit orbit-two" />
