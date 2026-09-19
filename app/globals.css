@@ -1682,3 +1682,27 @@ button:disabled { cursor: not-allowed; }
   .live-location-card > img { height: 210px; }
   .status-toolbar { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Demo helper stays explicit instead of hard-coding names */
+.demo-fill-button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff8d6;
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.demo-fill-button:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--yellow);
+}
+@media (max-width: 620px) {
+  .details-panel .panel-heading { align-items: flex-start; gap: 10px; }
+  .demo-fill-button { font-size: 8px; }
+}
