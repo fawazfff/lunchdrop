@@ -33,15 +33,35 @@ const statusLabel: Record<string, string> = {
   expired: "Expired",
 };
 
+function validHistoryItem(value: unknown): value is HistoryItem {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<HistoryItem>;
+  return Boolean(
+    typeof item.claimLink === "string" &&
+    typeof item.claimId === "string" &&
+    typeof item.senderKey === "string" &&
+    typeof item.claimCode === "string" &&
+    typeof item.dbBacked === "boolean" &&
+    typeof item.createdAt === "number"
+  );
+}
+
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [statuses, setStatuses] = useState<Record<string, RemoteStatus>>({});
   const [ready, setReady] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+
+  function saveHistory(next: HistoryItem[]) {
+    const safe = next.slice(0, 30);
+    setItems(safe);
+    window.localStorage.setItem("lunchdrop-history-v1", JSON.stringify(safe));
+  }
 
   useEffect(() => {
     try {
       const parsed = JSON.parse(window.localStorage.getItem("lunchdrop-history-v1") ?? "[]") as HistoryItem[];
-      setItems(parsed.filter((item) => item?.claimId && item?.claimLink).slice(0, 30));
+      setItems(parsed.filter(validHistoryItem).slice(0, 30));
     } catch {
       setItems([]);
     } finally {
@@ -93,9 +113,48 @@ export default function HistoryPage() {
   }
 
   function forget(claimId: string) {
-    const next = items.filter((item) => item.claimId !== claimId);
-    setItems(next);
-    window.localStorage.setItem("lunchdrop-history-v1", JSON.stringify(next));
+    saveHistory(items.filter((item) => item.claimId !== claimId));
+  }
+
+  function exportRecoveryFile() {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      app: "LunchDrop",
+      warning: "Private sender recovery file. Anyone with this file can view sender-side LunchDrop status.",
+      items,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `lunchdrop-recovery-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setSyncMessage("Recovery file saved. Keep it private.");
+    window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "Private LunchDrop recovery file saved." }));
+  }
+
+  async function importRecoveryFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text()) as { version?: number; items?: unknown[] };
+      if (parsed.version !== 1 || !Array.isArray(parsed.items)) throw new Error("Unsupported recovery file");
+      const incoming = parsed.items.filter(validHistoryItem);
+      if (incoming.length === 0) throw new Error("No LunchDrops found in this recovery file");
+
+      const merged = [...incoming, ...items]
+        .filter((item, index, all) => all.findIndex((candidate) => candidate.claimId === item.claimId) === index)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 30);
+
+      saveHistory(merged);
+      setSyncMessage(`Recovered ${incoming.length} LunchDrop${incoming.length === 1 ? "" : "s"} on this device.`);
+      window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "LunchDrop history recovered on this device." }));
+    } catch {
+      setSyncMessage("That file is not a valid LunchDrop recovery file.");
+      window.dispatchEvent(new CustomEvent("lunchdrop:toast", { detail: "Could not import that recovery file." }));
+    }
   }
 
   return (
@@ -106,8 +165,8 @@ export default function HistoryPage() {
         <span className="eyebrow">MY LUNCHDROPS</span>
         <h1>Keep an eye on the lunches you sent.</h1>
         <p>
-          This browser keeps the sender keys needed to read each LunchDrop’s private cross-device status.
-          No account is required.
+          This browser keeps the private sender keys needed to read each LunchDrop’s cross-device status.
+          No account is required, and you can securely move this history to another device with a recovery file.
         </p>
         <div className="history-summary">
           <span><b>{items.length}</b> saved here</span>
@@ -117,6 +176,25 @@ export default function HistoryPage() {
       </section>
 
       <section className="info-content shell">
+        <section className="history-sync-card">
+          <div>
+            <span className="eyebrow">MOVE TO ANOTHER DEVICE</span>
+            <h2>Back up or recover your sender history.</h2>
+            <p>
+              Export creates a private file containing your sender access keys. Importing it on another browser restores
+              your LunchDrop list and live Supabase status access. Keep the file private.
+            </p>
+          </div>
+          <div className="history-sync-actions">
+            <button className="secondary-action" type="button" onClick={exportRecoveryFile} disabled={items.length === 0}>Export recovery file</button>
+            <label className="secondary-action history-import-label">
+              Import recovery file
+              <input type="file" accept="application/json,.json" onChange={(event) => void importRecoveryFile(event.target.files?.[0])} />
+            </label>
+          </div>
+          {syncMessage ? <p className="history-sync-message" aria-live="polite">{syncMessage}</p> : null}
+        </section>
+
         {!ready ? <div className="status-loading">Loading your LunchDrops…</div> : null}
 
         {ready && items.length === 0 ? (
@@ -157,9 +235,11 @@ export default function HistoryPage() {
 
         {items.length > 0 ? (
           <div className="truth-card">
-            <b>Browser history, server status</b>
+            <b>Server status, private sender keys</b>
             <p>
-              The gift itself and its Created → Opened → Claimed state live in Supabase. This page stores only the sender-side access keys in this browser, so clearing browser storage removes this local history.
+              The gift and its Created → Opened → Claimed state live in Supabase. This page stores the private sender
+              access keys in your browser. Exporting a recovery file is the current no-account way to carry that access
+              to another device.
             </p>
           </div>
         ) : null}
