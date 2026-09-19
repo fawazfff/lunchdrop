@@ -7,6 +7,7 @@ export function ClaimCard() {
   const params = useSearchParams();
   const [claimed, setClaimed] = useState(false);
   const recipient = params.get("to") || "Friend";
+  const sender = params.get("from") || "A friend";
   const amount = Number(params.get("amount") || 15);
   const restaurant = params.get("restaurant") || "a Blackbird restaurant";
   const location = params.get("location") || "Nearby";
@@ -22,7 +23,7 @@ export function ClaimCard() {
         {image && <img className="claim-image" src={image} alt="" />}
         <div className="claim-body">
           <span className="eyebrow">A LUNCHDROP FOR {recipient.toUpperCase()}</span>
-          <h1>{claimed ? "Lunch claimed!" : "Someone sent you lunch."}</h1>
+          <h1>{claimed ? "Lunch claimed!" : `${sender} sent you lunch.`}</h1>
           <blockquote>“{message}”</blockquote>
           <div className="claim-details">
             <div><small>YOUR LUNCHDROP</small><strong>${amount}</strong><span>in FLY</span></div>
