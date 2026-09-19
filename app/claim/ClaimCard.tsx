@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { LunchBuddy } from "../components/LunchBuddy";
 
 type Venue = {
   name: string;
@@ -171,7 +172,7 @@ export function ClaimCard() {
   }
 
   if (loading) {
-    return <main className="claim-page"><div className="claim-status"><span className="eyebrow">VERIFYING SECURE LINK</span><h1>Opening your LunchDrop…</h1></div></main>;
+    return <main className="claim-page"><div className="claim-status claim-loading"><span className="eyebrow">VERIFYING SECURE LINK</span><LunchBuddy message="Opening your LunchDrop safely…" /><div className="loading-progress"><span /></div></div></main>;
   }
 
   if (error || !claim || !venue || !selectedPlace) {
