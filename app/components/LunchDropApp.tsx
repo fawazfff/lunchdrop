@@ -23,7 +23,10 @@ type Special = {
   fly_reward?: { value: string; currency: "FLY" } | null;
 };
 
+type ClaimStatus = "created" | "shared" | "opened" | "demo_claimed" | "connected_claimed";
+
 function fly(value: number) { return `${value} FLY`; }
+
 function rewardFly(special: Special) {
   const raw = special.fly_reward?.value;
   if (!raw) return "";
@@ -51,11 +54,12 @@ export function LunchDropApp() {
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [claimLink, setClaimLink] = useState("");
+  const [claimId, setClaimId] = useState("");
+  const [claimStatus, setClaimStatus] = useState<ClaimStatus>("created");
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     let active = true;
-
     setLoading(true);
     setError("");
     fetch(`/api/restaurants?city=${encodeURIComponent(city)}`)
@@ -72,9 +76,7 @@ export function LunchDropApp() {
       .catch((reason) => active && setError(reason.message))
       .finally(() => active && setLoading(false));
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [city]);
 
   useEffect(() => {
@@ -89,6 +91,24 @@ export function LunchDropApp() {
     return () => { active = false; };
   }, [selected]);
 
+  useEffect(() => {
+    if (!sent || !claimId) return;
+    const readStatus = () => {
+      const value = window.localStorage.getItem(`lunchdrop-status-${claimId}`) as ClaimStatus | null;
+      if (value) setClaimStatus(value);
+    };
+    readStatus();
+    const timer = window.setInterval(readStatus, 1000);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === `lunchdrop-status-${claimId}` && event.newValue) setClaimStatus(event.newValue as ClaimStatus);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [claimId, sent]);
+
   const filteredRestaurants = useMemo(() => {
     const query = search.trim().toLowerCase();
     const paymentLocations = restaurants.filter((restaurant) => restaurant.paymentsEnabled);
@@ -100,8 +120,14 @@ export function LunchDropApp() {
     );
   }, [cuisine, neighborhood, restaurants, search]);
 
-  const neighborhoods = useMemo(() => ["All neighborhoods", ...new Set(restaurants.filter((item) => item.paymentsEnabled).map((item) => item.neighborhood))].sort(), [restaurants]);
-  const cuisines = useMemo(() => ["All cuisines", ...new Set(restaurants.filter((item) => item.paymentsEnabled).flatMap((item) => item.cuisine))].sort(), [restaurants]);
+  const neighborhoods = useMemo(
+    () => ["All neighborhoods", ...new Set(restaurants.filter((item) => item.paymentsEnabled).map((item) => item.neighborhood))].sort(),
+    [restaurants],
+  );
+  const cuisines = useMemo(
+    () => ["All cuisines", ...new Set(restaurants.filter((item) => item.paymentsEnabled).flatMap((item) => item.cuisine))].sort(),
+    [restaurants],
+  );
 
   async function createDrop() {
     if (!selected) return;
@@ -116,6 +142,9 @@ export function LunchDropApp() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Unable to create LunchDrop");
       setClaimLink(`${window.location.origin}${payload.url}`);
+      setClaimId(payload.claimId);
+      setClaimStatus("created");
+      window.localStorage.setItem(`lunchdrop-status-${payload.claimId}`, "created");
       setSent(true);
       setTimeout(() => document.querySelector("#drop-ready")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (reason) {
@@ -128,85 +157,80 @@ export function LunchDropApp() {
   async function copyLink() {
     await navigator.clipboard.writeText(claimLink);
     setCopied(true);
+    if (claimId) {
+      window.localStorage.setItem(`lunchdrop-status-${claimId}`, "shared");
+      setClaimStatus("shared");
+    }
     window.setTimeout(() => setCopied(false), 1800);
   }
+
+  function sendAgain() {
+    setSent(false);
+    setCopied(false);
+    setClaimLink("");
+    setClaimId("");
+    setClaimStatus("created");
+    setRecipient("");
+    setAmount(15);
+    setMessage("Lunch is on me today 💛");
+    setSelectedSpecial(null);
+    window.setTimeout(() => document.querySelector("#build-drop")?.scrollIntoView({ behavior: "smooth" }), 50);
+  }
+
+  const opened = ["opened", "demo_claimed", "connected_claimed"].includes(claimStatus);
+  const claimed = ["demo_claimed", "connected_claimed"].includes(claimStatus);
 
   return (
     <main>
       <nav className="nav shell">
-        <a className="brand" href="/" aria-label="LunchDrop home">
-          <span className="brand-mark">L</span>
-          <span>LunchDrop</span>
-        </a>
-        <div className="nav-links">
-          <a href="/how-it-works">How it works</a>
-          <a href="/faq">FAQ</a>
-          <a href="/about">About</a>
-        </div>
-        <div className="nav-actions">
-          <span className="live-pill"><i /> Live Flynet data</span>
-          <a className="ghost-button" href="/">Home</a>
-        </div>
+        <a className="brand" href="/" aria-label="LunchDrop home"><span className="brand-mark">L</span><span>LunchDrop</span></a>
+        <div className="nav-links"><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/about">About</a></div>
+        <div className="nav-actions"><span className="live-pill"><i /> Live Flynet data</span><a className="ghost-button" href="/">Home</a></div>
       </nav>
 
       <section className="hero shell" id="top">
         <div className="hero-copy">
           <span className="eyebrow">A LITTLE FOOD. A LOT OF LOVE.</span>
           <h1>Send lunch.<br /><em>Make their day.</em></h1>
-          <p>Pick a real Blackbird restaurant, choose a city, and send a lunch note your friend can claim from one simple link.</p>
+          <p>Pick a real Blackbird restaurant, add a note, and send a LunchDrop they can open in seconds.</p>
           <a className="primary-button" href="#build-drop">Send a LunchDrop <span>→</span></a>
-          <div className="trust-row">
-            <span>Powered by</span>
-            <strong>BLACKBIRD</strong>
-            <b>×</b>
-            <strong>FLYNET</strong>
-          </div>
+          <div className="trust-row"><span>Powered by</span><strong>BLACKBIRD</strong><b>×</b><strong>FLYNET</strong></div>
         </div>
 
         <div className="hero-stage" aria-label="Preview of a LunchDrop gift">
-          <div className="sun-disc" />
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
+          <div className="sun-disc" /><div className="orbit orbit-one" /><div className="orbit orbit-two" />
           <article className="gift-card">
             <div className="gift-topline"><span>LunchDrop</span><span className="gift-stamp">JUST FOR YOU</span></div>
             <div className="gift-amount"><small>FLY</small>15</div>
-            <p>for something delicious</p>
-            <div className="gift-divider" />
+            <p>for something delicious</p><div className="gift-divider" />
             <div className="gift-place"><span>🍽</span><div><b>Pick their favorite</b><small>Real restaurants via Flynet</small></div></div>
           </article>
-          <span className="float-chip chip-one">Lunch secured ✓</span>
-          <span className="float-chip chip-two">Sent with FLY</span>
+          <span className="float-chip chip-one">Lunch secured ✓</span><span className="float-chip chip-two">Sent with FLY</span>
         </div>
       </section>
 
       <section className="builder-section" id="build-drop">
         <div className="shell">
-          <header className="section-heading">
-            <span className="eyebrow">CREATE A DROP</span>
-            <h2>Three steps to someone’s<br />best lunch this week.</h2>
-          </header>
+          <header className="section-heading"><span className="eyebrow">CREATE A DROP</span><h2>Three steps to someone’s<br />best lunch this week.</h2></header>
 
           <div className="step-row">
             <div className="step-label active"><span>1</span><div><b>Pick a place</b><small>Live from Flynet</small></div></div>
             <div className="step-line" />
             <div className="step-label"><span>2</span><div><b>Add the good stuff</b><small>Amount & note</small></div></div>
             <div className="step-line" />
-            <div className="step-label"><span>3</span><div><b>Send the link</b><small>They claim with Blackbird</small></div></div>
+            <div className="step-label"><span>3</span><div><b>Send the link</b><small>No account required</small></div></div>
           </div>
 
           <aside className="integration-proof">
             <span className="live-pill"><i /> LIVE API</span>
-            <div><b>Flynet powers every restaurant choice</b><small>GET /flynet/v1/locations → real Blackbird venues, cities, neighborhoods, cuisines and images.</small></div>
+            <div><b>Flynet powers every restaurant choice</b><small>Real Blackbird venues, cities, neighborhoods, cuisines, images, payment availability, and live specials.</small></div>
             <a href="https://docs.flynet.org/api-reference/locations/list" target="_blank" rel="noreferrer">View Flynet endpoint ↗</a>
           </aside>
 
           <div className="builder-grid">
             <section className="panel restaurant-panel">
-              <div className="panel-heading">
-                <div><span className="panel-number">01</span><h3>Where should they eat?</h3></div>
-                <span className="flynet-badge">↯ FLYNET</span>
-              </div>
-              <p className="panel-subtitle">Only Blackbird locations marked by Flynet as accepting FLY payments are shown.</p>
+              <div className="panel-heading"><div><span className="panel-number">01</span><h3>Where should they eat?</h3></div><span className="flynet-badge">↯ FLYNET</span></div>
+              <p className="panel-subtitle">Choose a recommendation. Your recipient can still pick another FLY-ready Blackbird spot.</p>
               <label className="field-label" htmlFor="city">Choose a city</label>
               <select id="city" className="text-input city-select" value={city} onChange={(event) => { setCity(event.target.value); setSent(false); }}>
                 {cities.map((option) => <option value={option} key={option}>{option}</option>)}
@@ -221,16 +245,10 @@ export function LunchDropApp() {
               {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span></div>}
               <div className="restaurant-list">
                 {filteredRestaurants.slice(0, visibleCount).map((restaurant) => (
-                  <button
-                    type="button"
-                    className={`restaurant-card ${selected?.locationId === restaurant.locationId ? "selected" : ""}`}
-                    key={restaurant.locationId}
-                    onClick={() => { setSelected(restaurant); setSent(false); }}
-                  >
+                  <button type="button" className={`restaurant-card ${selected?.locationId === restaurant.locationId ? "selected" : ""}`} key={restaurant.locationId} onClick={() => { setSelected(restaurant); setSent(false); }}>
                     <img src={restaurant.image} alt="" />
                     <span className="restaurant-info">
-                      <b>{restaurant.name}</b>
-                      <small>{restaurant.cuisine.slice(0, 2).join(" · ")}</small>
+                      <b>{restaurant.name}</b><small>{restaurant.cuisine.slice(0, 2).join(" · ")}</small>
                       <em>{restaurant.neighborhood} · {restaurant.location}</em>
                       {restaurant.paymentsEnabled ? <span className="payment-ready">FLY payments enabled</span> : null}
                     </span>
@@ -244,9 +262,7 @@ export function LunchDropApp() {
             </section>
 
             <section className="panel details-panel">
-              <div className="panel-heading">
-                <div><span className="panel-number">02</span><h3>Make it personal.</h3></div>
-              </div>
+              <div className="panel-heading"><div><span className="panel-number">02</span><h3>Make it personal.</h3></div></div>
               <p className="panel-subtitle">A little context makes lunch taste better.</p>
 
               <label className="field-label" htmlFor="sender">Your name</label>
@@ -263,7 +279,7 @@ export function LunchDropApp() {
               </div> : <p className="no-special">Flynet has no current menu highlight for this restaurant. Regular menu prices are not included in the API.</p>}
 
               <label className="field-label" htmlFor="amount">Gift budget in FLY</label>
-              <input id="amount" className="text-input" type="number" min="1" max="10000" step="1" value={amount} onChange={(event) => { setAmount(Math.max(1, Number(event.target.value))); setSent(false); }} />
+              <input id="amount" className="text-input" type="number" min="1" max="100" step="1" value={amount} onChange={(event) => { setAmount(Math.min(100, Math.max(1, Number(event.target.value)))); setSent(false); }} />
 
               <label className="field-label" htmlFor="message">Add a note</label>
               <textarea id="message" className="text-input note-input" value={message} maxLength={100} onChange={(event) => { setMessage(event.target.value); setSent(false); }} />
@@ -272,7 +288,7 @@ export function LunchDropApp() {
               <button className="send-button" type="button" disabled={!selected || !sender.trim() || !recipient.trim() || creating} onClick={createDrop}>
                 {creating ? "Securing claim link…" : `Create ${fly(amount)} LunchDrop`} <span>→</span>
               </button>
-              <p className="fine-print">Creates a signed, tamper-resistant test claim. The restaurant is a recommendation; delivered FLY can be used at participating Blackbird locations.</p>
+              <p className="fine-print">Creates a signed, tamper-resistant test claim. The restaurant is a recommendation, not a lock-in.</p>
             </section>
           </div>
 
@@ -285,7 +301,21 @@ export function LunchDropApp() {
                 <p>{fly(amount)} with <strong>{selectedSpecial?.label || selected.name}</strong> as your recommendation.</p>
               </div>
               <div className="link-box"><span>{claimLink}</span><button type="button" onClick={copyLink}>{copied ? "Copied!" : "Copy link"}</button></div>
-              <a className="preview-link" href={claimLink}>Preview what {recipient} sees →</a>
+
+              <div className="sender-status">
+                <div className="sender-status-heading"><div><span className="eyebrow">DEMO STATUS</span><h3>Follow the LunchDrop</h3></div><small>Live on this browser for the hackathon demo</small></div>
+                <div className="status-timeline">
+                  <div className="status-step done"><span>✓</span><div><b>Created</b><small>Secure gift link generated</small></div></div>
+                  <div className={`status-step ${claimStatus !== "created" ? "done" : ""}`}><span>{claimStatus !== "created" ? "✓" : "2"}</span><div><b>Link shared</b><small>{claimStatus !== "created" ? "Link copied or opened" : "Copy the link to share it"}</small></div></div>
+                  <div className={`status-step ${opened ? "done" : ""}`}><span>{opened ? "✓" : "3"}</span><div><b>Opened</b><small>{opened ? `${recipient}’s claim page was opened` : "Waiting for the recipient"}</small></div></div>
+                  <div className={`status-step ${claimed ? "done" : ""}`}><span>{claimed ? "✓" : "4"}</span><div><b>Claimed</b><small>{claimStatus === "connected_claimed" ? "Test FLY delivered through Blackbird" : claimStatus === "demo_claimed" ? "Demo claim completed without sign-in" : "Waiting for claim"}</small></div></div>
+                </div>
+              </div>
+
+              <div className="ready-actions">
+                <a className="preview-link" href={claimLink} target="_blank" rel="noreferrer">Preview what {recipient} sees →</a>
+                <button className="secondary-action" type="button" onClick={sendAgain}>Send another lunch</button>
+              </div>
             </section>
           )}
         </div>
@@ -299,4 +329,3 @@ export function LunchDropApp() {
     </main>
   );
 }
-
