@@ -61,7 +61,7 @@ export function LunchDropApp() {
         if (active) {
           setRestaurants(payload.restaurants);
           setCities(payload.cities ?? [city]);
-          setSelected(payload.restaurants[0] ?? null);
+          setSelected(payload.restaurants.find((restaurant: Restaurant) => restaurant.paymentsEnabled) ?? null);
           setVisibleCount(6);
         }
       })
@@ -87,8 +87,9 @@ export function LunchDropApp() {
 
   const filteredRestaurants = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return restaurants;
-    return restaurants.filter((restaurant) =>
+    const paymentLocations = restaurants.filter((restaurant) => restaurant.paymentsEnabled);
+    if (!query) return paymentLocations;
+    return paymentLocations.filter((restaurant) =>
       [restaurant.name, restaurant.location, restaurant.neighborhood, ...restaurant.cuisine]
         .some((value) => value.toLowerCase().includes(query)),
     );
@@ -122,7 +123,7 @@ export function LunchDropApp() {
   return (
     <main>
       <nav className="nav shell">
-        <a className="brand" href="#top" aria-label="LunchDrop home">
+        <a className="brand" href="/" aria-label="LunchDrop home">
           <span className="brand-mark">L</span>
           <span>LunchDrop</span>
         </a>
@@ -133,7 +134,7 @@ export function LunchDropApp() {
         </div>
         <div className="nav-actions">
           <span className="live-pill"><i /> Live Flynet data</span>
-          <a className="ghost-button" href="#build-drop">Explore restaurants</a>
+          <a className="ghost-button" href="/">Home</a>
         </div>
       </nav>
 
@@ -194,12 +195,12 @@ export function LunchDropApp() {
                 <div><span className="panel-number">01</span><h3>Where should they eat?</h3></div>
                 <span className="flynet-badge">↯ FLYNET</span>
               </div>
-              <p className="panel-subtitle">Choose from live Blackbird locations. Restaurant and cuisine data come directly from Flynet.</p>
+              <p className="panel-subtitle">Only Blackbird locations marked by Flynet as accepting FLY payments are shown.</p>
               <label className="field-label" htmlFor="city">Choose a city</label>
               <select id="city" className="text-input city-select" value={city} onChange={(event) => { setCity(event.target.value); setSent(false); }}>
                 {cities.map((option) => <option value={option} key={option}>{option}</option>)}
               </select>
-              <input className="text-input restaurant-search" value={search} onChange={(event) => { setSearch(event.target.value); setVisibleCount(6); }} placeholder="Search every restaurant or cuisine" aria-label="Search restaurants" />
+              <input className="text-input restaurant-search" value={search} onChange={(event) => { setSearch(event.target.value); setVisibleCount(6); }} placeholder="Search FLY-ready restaurants" aria-label="Search restaurants" />
 
               {loading && <div className="restaurant-loading"><i /><i /><i /></div>}
               {error && <div className="error-card"><b>Flynet needs a minute.</b><span>{error}</span></div>}

@@ -1,5 +1,6 @@
-import { LunchDropApp } from "./components/LunchDropApp";
+import { HomePage } from "./components/HomePage";
 
 export default function Home() {
-  return <LunchDropApp />;
+  return <HomePage />;
 }
+
