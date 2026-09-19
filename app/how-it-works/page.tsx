@@ -1,7 +1,7 @@
 import { InfoPage } from "../components/InfoPage";
 
 export default function HowItWorksPage() {
-  return <InfoPage eyebrow="THE FLOW" title="From a thought to their table." intro="LunchDrop turns live Blackbird restaurant discovery into a personal lunch gift that anyone can test.">
+  return <InfoPage eyebrow="THE FLOW" title="From a thought to their table." intro="LunchDrop turns live Blackbird restaurant discovery into a personal lunch gift that anyone can test." current="how">
     <div className="info-grid">
       <article><span>01</span><h2>Explore</h2><p>Choose a city and search FLY-enabled restaurant locations returned by Flynet.</p></article>
       <article><span>02</span><h2>Personalize</h2><p>Choose a live special when available, set the FLY amount, and write your note.</p></article>
