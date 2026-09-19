@@ -32,6 +32,7 @@ export function LunchDropApp() {
   const [city, setCity] = useState("New York, NY");
   const [selected, setSelected] = useState<Restaurant | null>(null);
   const [amount, setAmount] = useState(15);
+  const [sender, setSender] = useState("Fawaz");
   const [recipient, setRecipient] = useState("Maya");
   const [message, setMessage] = useState("Lunch is on me today 💛");
   const [sent, setSent] = useState(false);
@@ -63,7 +64,7 @@ export function LunchDropApp() {
     if (!selected || typeof window === "undefined") return "";
     const params = new URLSearchParams({
       to: recipient.trim() || "A friend",
-      from: "A friend",
+      from: sender.trim() || "A friend",
       amount: String(amount),
       message,
       restaurant: selected.name,
@@ -74,7 +75,7 @@ export function LunchDropApp() {
       locationId: selected.locationId,
     });
     return `${window.location.origin}/claim?${params.toString()}`;
-  }, [amount, message, recipient, selected]);
+  }, [amount, message, recipient, selected, sender]);
 
   function createDrop() {
     if (!selected) return;
@@ -186,6 +187,9 @@ export function LunchDropApp() {
               </div>
               <p className="panel-subtitle">A little context makes lunch taste better.</p>
 
+              <label className="field-label" htmlFor="sender">Your name</label>
+              <input id="sender" className="text-input" value={sender} onChange={(event) => { setSender(event.target.value); setSent(false); }} placeholder="Who is sending this?" />
+
               <label className="field-label" htmlFor="recipient">Who’s getting lunch?</label>
               <input id="recipient" className="text-input" value={recipient} onChange={(event) => { setRecipient(event.target.value); setSent(false); }} placeholder="Their first name" />
 
@@ -200,7 +204,7 @@ export function LunchDropApp() {
               <textarea id="message" className="text-input note-input" value={message} maxLength={100} onChange={(event) => { setMessage(event.target.value); setSent(false); }} />
               <div className="character-count">{message.length}/100</div>
 
-              <button className="send-button" type="button" disabled={!selected || !recipient.trim()} onClick={createDrop}>
+              <button className="send-button" type="button" disabled={!selected || !sender.trim() || !recipient.trim()} onClick={createDrop}>
                 Create {money(amount)} LunchDrop <span>→</span>
               </button>
               <p className="fine-print">Live Flynet restaurant discovery. This prototype creates a shareable lunch invitation; wallet transfer comes after Blackbird connection.</p>
