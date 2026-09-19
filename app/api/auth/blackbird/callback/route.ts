@@ -1,11 +1,22 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { verifyClaim } from "../../../../lib/claim-token";
+import { connectedClaimLunchDrop, openLunchDrop } from "../../../../lib/lunchdrop-db";
 
 const CLIENT_ID = process.env.FLYNET_CLIENT_ID ?? "19a0b552-ff8e-43de-b47a-bbc32ee0cd8a";
 const REDIRECT_URI = process.env.REDIRECT_URI || "https://lunchdrop.vercel.app/api/auth/blackbird/callback";
 const AUTH_BASE = process.env.FLYNET_AUTH_BASE ?? "https://api.blackbird.xyz/oauth";
 const API_BASE = process.env.FLYNET_API_BASE ?? "https://api.blackbird.xyz/flynet/v1";
+
+type RewardClaim = {
+  id: string;
+  locationId: string;
+  recipient: string;
+  sender: string;
+  amount: number;
+  status?: string;
+  rewardId?: string;
+};
 
 function safeReturnPath(value: string) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
@@ -14,7 +25,7 @@ function safeReturnPath(value: string) {
 
 function clearOAuthCookies(response: NextResponse) {
   const expired = { httpOnly: true, secure: true, sameSite: "lax" as const, maxAge: 0, path: "/api/auth/blackbird" };
-  for (const name of ["ld_oauth_state", "ld_oauth_verifier", "ld_oauth_mode", "ld_oauth_return", "ld_claim"]) {
+  for (const name of ["ld_oauth_state", "ld_oauth_verifier", "ld_oauth_mode", "ld_oauth_return", "ld_claim", "ld_claim_code"]) {
     response.cookies.set(name, "", expired);
   }
 }
@@ -32,11 +43,17 @@ function setMemberSession(response: NextResponse, memberId: string) {
 function finishRedirect(
   request: Request,
   token: string,
+  code: string,
   returnPath: string,
   values: Record<string, string>,
   memberId?: string,
 ) {
-  const url = token ? new URL(`/c/${token}`, request.url) : new URL(safeReturnPath(returnPath), request.url);
+  const url = code
+    ? new URL(`/c/${code}`, request.url)
+    : token
+      ? new URL(`/c/${token}`, request.url)
+      : new URL(safeReturnPath(returnPath), request.url);
+
   for (const [key, value] of Object.entries(values)) url.searchParams.set(key, value);
   const response = NextResponse.redirect(url);
   if (memberId) setMemberSession(response, memberId);
@@ -48,38 +65,64 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const cookieStore = await cookies();
   const token = cookieStore.get("ld_claim")?.value ?? "";
-  const mode = cookieStore.get("ld_oauth_mode")?.value ?? (token ? "claim" : "connect");
+  const code = cookieStore.get("ld_claim_code")?.value ?? "";
+  const mode = cookieStore.get("ld_oauth_mode")?.value ?? (token || code ? "claim" : "connect");
   const returnPath = cookieStore.get("ld_oauth_return")?.value ?? "/";
   const expectedState = cookieStore.get("ld_oauth_state")?.value ?? "";
   const verifier = cookieStore.get("ld_oauth_verifier")?.value ?? "";
-  const code = params.get("code") ?? "";
+  const oauthCode = params.get("code") ?? "";
   const state = params.get("state") ?? "";
 
+  const errorValues = (value: string) => token || code
+    ? { oauth_error: value }
+    : { blackbird_error: value };
+
   if (params.get("error")) {
-    return finishRedirect(request, token, returnPath, token
-      ? { oauth_error: "authorization_cancelled" }
-      : { blackbird_error: "authorization_cancelled" });
+    return finishRedirect(request, token, code, returnPath, errorValues("authorization_cancelled"));
   }
 
-  if (!code || !verifier || !state || state !== expectedState) {
-    return finishRedirect(request, token, returnPath, token
-      ? { oauth_error: "invalid_oauth_state" }
-      : { blackbird_error: "invalid_oauth_state" });
+  if (!oauthCode || !verifier || !state || state !== expectedState) {
+    return finishRedirect(request, token, code, returnPath, errorValues("invalid_oauth_state"));
   }
 
-  let claim: ReturnType<typeof verifyClaim> | null = null;
-  if (mode === "claim" || token) {
-    if (!token) return finishRedirect(request, "", returnPath, { blackbird_error: "invalid_claim" });
-    try {
-      claim = verifyClaim(token);
-    } catch {
-      return finishRedirect(request, "", returnPath, { blackbird_error: "invalid_claim" });
+  let claim: RewardClaim | null = null;
+
+  if (mode === "claim" || token || code) {
+    if (code) {
+      try {
+        const dbClaim = await openLunchDrop(code);
+        if (!dbClaim || dbClaim.status === "cancelled" || dbClaim.status === "expired" || !dbClaim.id || !dbClaim.locationId) {
+          return finishRedirect(request, token, code, returnPath, errorValues("invalid_claim"));
+        }
+
+        if (dbClaim.status === "connected_claimed") {
+          return finishRedirect(
+            request,
+            token,
+            code,
+            returnPath,
+            { claimed: "1", reward: String(dbClaim.rewardId ?? "confirmed") },
+          );
+        }
+
+        claim = dbClaim as RewardClaim;
+      } catch {
+        return finishRedirect(request, token, code, returnPath, errorValues("invalid_claim"));
+      }
+    } else if (token) {
+      try {
+        claim = verifyClaim(token);
+      } catch {
+        return finishRedirect(request, "", "", returnPath, { blackbird_error: "invalid_claim" });
+      }
+    } else {
+      return finishRedirect(request, "", "", returnPath, { blackbird_error: "invalid_claim" });
     }
   }
 
   const exchangeBody: Record<string, string> = {
     grant_type: "authorization_code",
-    code,
+    code: oauthCode,
     code_verifier: verifier,
     client_id: CLIENT_ID,
     redirect_uri: REDIRECT_URI,
@@ -94,17 +137,13 @@ export async function GET(request: Request) {
   });
 
   if (!exchange.ok) {
-    return finishRedirect(request, token, returnPath, token
-      ? { oauth_error: `token_exchange_${exchange.status}` }
-      : { blackbird_error: `token_exchange_${exchange.status}` });
+    return finishRedirect(request, token, code, returnPath, errorValues(`token_exchange_${exchange.status}`));
   }
 
   const oauth = await exchange.json();
   const accessToken = oauth.access_token as string | undefined;
   if (!accessToken) {
-    return finishRedirect(request, token, returnPath, token
-      ? { oauth_error: "missing_access_token" }
-      : { blackbird_error: "missing_access_token" });
+    return finishRedirect(request, token, code, returnPath, errorValues("missing_access_token"));
   }
 
   const profileResponse = await fetch(`${API_BASE}/users/me`, {
@@ -113,26 +152,23 @@ export async function GET(request: Request) {
   });
 
   if (!profileResponse.ok) {
-    return finishRedirect(request, token, returnPath, token
-      ? { oauth_error: `profile_${profileResponse.status}` }
-      : { blackbird_error: `profile_${profileResponse.status}` });
+    return finishRedirect(request, token, code, returnPath, errorValues(`profile_${profileResponse.status}`));
   }
 
   const profile = await profileResponse.json();
   const userId = profile.id as string | undefined;
   if (!userId) {
-    return finishRedirect(request, token, returnPath, token
-      ? { oauth_error: "missing_member_id" }
-      : { blackbird_error: "missing_member_id" });
+    return finishRedirect(request, token, code, returnPath, errorValues("missing_member_id"));
   }
 
-  // Homepage / general account connection ends here. No FLY is moved.
   if (!claim) {
-    return finishRedirect(request, "", returnPath, { blackbird: "connected" }, userId);
+    return finishRedirect(request, "", "", returnPath, { blackbird: "connected" }, userId);
   }
 
   const apiKey = process.env.FLYNET_API_KEY;
-  if (!apiKey) return finishRedirect(request, token, returnPath, { oauth_error: "rewards_not_configured" }, userId);
+  if (!apiKey) {
+    return finishRedirect(request, token, code, returnPath, { oauth_error: "rewards_not_configured" }, userId);
+  }
 
   const rewardResponse = await fetch(`${API_BASE}/issue_reward`, {
     method: "POST",
@@ -149,14 +185,28 @@ export async function GET(request: Request) {
 
   const reward = await rewardResponse.json().catch(() => ({}));
   if (!rewardResponse.ok) {
-    return finishRedirect(request, token, returnPath, { oauth_error: `reward_${rewardResponse.status}` }, userId);
+    return finishRedirect(request, token, code, returnPath, { oauth_error: `reward_${rewardResponse.status}` }, userId);
   }
   if (reward.user_id && reward.user_id !== userId) {
-    return finishRedirect(request, token, returnPath, { oauth_error: "already_claimed" }, userId);
+    return finishRedirect(request, token, code, returnPath, { oauth_error: "already_claimed" }, userId);
   }
 
-  return finishRedirect(request, token, returnPath, {
-    claimed: "1",
-    reward: String(reward.id ?? "confirmed"),
-  }, userId);
+  const rewardId = String(reward.id ?? "confirmed");
+  if (code) {
+    try {
+      await connectedClaimLunchDrop(code, rewardId);
+    } catch {
+      // Reward delivery already succeeded. Do not turn a successful reward into an error
+      // just because receipt persistence is temporarily unavailable.
+    }
+  }
+
+  return finishRedirect(
+    request,
+    token,
+    code,
+    returnPath,
+    { claimed: "1", reward: rewardId },
+    userId,
+  );
 }
