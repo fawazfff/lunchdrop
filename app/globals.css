@@ -1176,3 +1176,170 @@ body.lunchie-party::after {
   transform: translate(-2px,-2px);
   box-shadow: 7px 7px 0 var(--yellow);
 }
+
+
+/* Product polish: sharing, expiry, status, recovery */
+.amount-custom-input { margin-top: 9px; }
+.expiry-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+}
+.expiry-grid button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 8px;
+  background: white;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.expiry-grid button:hover { transform: translateY(-1px); border-color: rgba(23,22,18,.45); }
+.expiry-grid button.active {
+  border-color: var(--ink);
+  background: var(--yellow);
+  box-shadow: 3px 3px 0 var(--ink);
+  transform: translate(-1px,-1px);
+}
+.retry-button {
+  width: fit-content;
+  margin-top: 8px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
+.share-button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 13px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.share-button:hover { transform: translateY(-2px); box-shadow: 3px 4px 0 rgba(23,22,18,.15); }
+.share-button.primary-share { background: var(--ink); color: white; }
+.claim-expiry {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 14px 0 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #f4f1eb;
+  color: rgba(23,22,18,.65);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.blackbird-note a {
+  margin-left: auto;
+  color: white;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+/* Integration status */
+.status-page .info-hero h1 { max-width: 1020px; }
+.status-loading {
+  display: grid;
+  gap: 18px;
+  width: min(620px,100%);
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.status-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.status-meta span {
+  display: grid;
+  gap: 4px;
+  min-width: 190px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255,255,255,.65);
+  font-size: 11px;
+}
+.status-meta b {
+  font: 850 8px/1 var(--font-geist-mono),monospace;
+  letter-spacing: .09em;
+  color: rgba(23,22,18,.48);
+  text-transform: uppercase;
+}
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 12px;
+}
+.integration-check {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.integration-check-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #a6a199;
+  box-shadow: 0 0 0 5px rgba(166,161,153,.12);
+}
+.integration-check.connected .status-dot { background: #397643; box-shadow: 0 0 0 5px rgba(57,118,67,.12); }
+.integration-check.configured .status-dot { background: #c48726; box-shadow: 0 0 0 5px rgba(196,135,38,.12); }
+.integration-check.not_verified .status-dot { background: var(--orange); box-shadow: 0 0 0 5px rgba(255,123,54,.12); }
+.integration-check.unavailable .status-dot { background: #9b3726; box-shadow: 0 0 0 5px rgba(155,55,38,.12); }
+.integration-check h2 { margin: 18px 0 7px; font-size: 24px; letter-spacing: -.04em; }
+.integration-check p { margin: 0; color: rgba(23,22,18,.62); font-size: 12px; line-height: 1.55; }
+
+/* Keyboard and accessibility polish */
+:where(a,button,input,textarea,select,summary):focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
+button:disabled { cursor: not-allowed; }
+[aria-live="polite"] { isolation: isolate; }
+
+@media (max-width: 760px) {
+  .status-grid { grid-template-columns: 1fr; }
+  .blackbird-note { flex-wrap: wrap; }
+  .blackbird-note a { width: 100%; margin-left: 17px; }
+}
+@media (max-width: 620px) {
+  .expiry-grid { grid-template-columns: 1fr; }
+  .share-actions { display: grid; grid-template-columns: repeat(2,1fr); }
+  .share-button.primary-share { grid-column: 1 / -1; }
+}
